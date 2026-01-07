@@ -58,19 +58,24 @@ export function ActiveSessionDrawer({ isOpen, onClose }: ActiveSessionDrawerProp
   // Workout Duration Timer
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (isOpen) {
+    
+    // Only run timer if session is open AND summary is NOT open
+    if (isOpen && !isSummaryOpen) {
       interval = setInterval(() => {
         setElapsedTime((prev) => prev + 1);
       }, 1000);
-    } else {
+    } else if (!isOpen) {
+      // Reset when closed
       setElapsedTime(0);
       setExercises([]);
       stopRestTimer();
       setIsSummaryOpen(false);
       setIsSaving(false);
     }
+    
+    // If isSummaryOpen is true, we clear interval (pause) via cleanup or condition above
     return () => clearInterval(interval);
-  }, [isOpen]);
+  }, [isOpen, isSummaryOpen]); // Added isSummaryOpen dependency
 
   // Rest Timer Logic
   const startRestTimer = () => {
@@ -104,13 +109,6 @@ export function ActiveSessionDrawer({ isOpen, onClose }: ActiveSessionDrawerProp
       const newVal = prev + seconds;
       return newVal < 0 ? 0 : newVal;
     });
-    // Optional: adjust total if adding time extends beyond original
-    // But usually we just track current remaining.
-    // If adding negative, we don't change totalRestSeconds usually to keep progress bar making sense?
-    // Actually progress bar uses totalRestSeconds.
-    // Let's update totalRestSeconds if we add time, but maybe not if subtract?
-    // For simplicity, let's keep total as max reference or update it.
-    // If we add 10s, total should probably increase to reflect new scale.
     if (seconds > 0) {
       setTotalRestSeconds((prev) => prev + seconds);
     }
@@ -219,18 +217,25 @@ export function ActiveSessionDrawer({ isOpen, onClose }: ActiveSessionDrawerProp
 
   const { volume: totalVolume, sets: totalSets } = calculateStats();
 
+  const handleFinishClick = () => {
+    // Stop rest timer if running
+    stopRestTimer();
+    // Open summary modal, which triggers effect dependency to pause workout timer
+    setIsSummaryOpen(true);
+  };
+
+  const handleCancelSummary = () => {
+    setIsSummaryOpen(false);
+    // Timer will resume automatically due to useEffect dependency
+  };
+
   // Save Workout Logic
   const handleSaveWorkout = async () => {
     try {
       setIsSaving(true);
       
-      // Get current user (optional, if auth is implemented, otherwise might need to skip or use placeholder)
-      // Since supabase client is initialized, we can try to get session.
-      // If no session, we might fail RLS or need to allow anon.
-      // Assuming for this task we just insert.
-      
       const { data: { user } } = await supabase.auth.getUser();
-      const userId = user?.id || "anon_user"; // Fallback for dev without auth
+      const userId = user?.id || "anon_user";
 
       // 1. Create Workout
       const workoutId = crypto.randomUUID();
@@ -249,7 +254,6 @@ export function ActiveSessionDrawer({ isOpen, onClose }: ActiveSessionDrawerProp
       if (workoutError) throw workoutError;
 
       // 2. Create Exercises & Sets
-      // We'll do this sequentially or in parallel batches.
       for (let i = 0; i < exercises.length; i++) {
         const ex = exercises[i];
         
@@ -311,7 +315,7 @@ export function ActiveSessionDrawer({ isOpen, onClose }: ActiveSessionDrawerProp
           </div>
 
           <button
-            onClick={() => setIsSummaryOpen(true)}
+            onClick={handleFinishClick}
             className="rounded-full bg-zinc-900 px-4 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 w-20"
           >
             Finish
@@ -376,7 +380,7 @@ export function ActiveSessionDrawer({ isOpen, onClose }: ActiveSessionDrawerProp
         totalSets={totalSets}
         isSaving={isSaving}
         onSave={handleSaveWorkout}
-        onCancel={() => setIsSummaryOpen(false)}
+        onCancel={handleCancelSummary}
       />
     </>
   );
