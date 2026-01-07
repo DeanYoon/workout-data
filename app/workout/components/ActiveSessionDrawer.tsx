@@ -1,17 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Timer, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { AddExerciseModal } from "./AddExerciseModal";
+import { ExerciseCard, ExerciseItem, ExerciseSet } from "./ExerciseCard";
 
 interface ActiveSessionDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-}
-
-interface ExerciseItem {
-  id: string;
-  name: string;
 }
 
 export function ActiveSessionDrawer({ isOpen, onClose }: ActiveSessionDrawerProps) {
@@ -45,9 +41,74 @@ export function ActiveSessionDrawer({ isOpen, onClose }: ActiveSessionDrawerProp
     const newExercise: ExerciseItem = {
       id: crypto.randomUUID(),
       name,
+      sets: [
+        {
+          id: crypto.randomUUID(),
+          weight: 0,
+          reps: 0,
+          isCompleted: false,
+        },
+      ],
     };
     setExercises((prev) => [...prev, newExercise]);
     setIsAddModalOpen(false);
+  };
+
+  const handleRemoveExercise = (exerciseId: string) => {
+    setExercises((prev) => prev.filter((ex) => ex.id !== exerciseId));
+  };
+
+  const handleAddSet = (exerciseId: string) => {
+    setExercises((prev) =>
+      prev.map((ex) => {
+        if (ex.id === exerciseId) {
+          const lastSet = ex.sets[ex.sets.length - 1];
+          const newSet: ExerciseSet = {
+            id: crypto.randomUUID(),
+            weight: lastSet ? lastSet.weight : 0,
+            reps: lastSet ? lastSet.reps : 0,
+            isCompleted: false,
+          };
+          return { ...ex, sets: [...ex.sets, newSet] };
+        }
+        return ex;
+      })
+    );
+  };
+
+  const handleRemoveSet = (exerciseId: string, setId: string) => {
+    setExercises((prev) =>
+      prev.map((ex) => {
+        if (ex.id === exerciseId) {
+          return { ...ex, sets: ex.sets.filter((s) => s.id !== setId) };
+        }
+        return ex;
+      })
+    );
+  };
+
+  const handleUpdateSet = (
+    exerciseId: string,
+    setId: string,
+    field: "weight" | "reps" | "isCompleted",
+    value: number | boolean
+  ) => {
+    setExercises((prev) =>
+      prev.map((ex) => {
+        if (ex.id === exerciseId) {
+          return {
+            ...ex,
+            sets: ex.sets.map((s) => {
+              if (s.id === setId) {
+                return { ...s, [field]: value };
+              }
+              return s;
+            }),
+          };
+        }
+        return ex;
+      })
+    );
   };
 
   if (!isOpen) return null;
@@ -76,7 +137,7 @@ export function ActiveSessionDrawer({ isOpen, onClose }: ActiveSessionDrawerProp
         </header>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4 pb-24">
+        <div className="flex-1 overflow-y-auto bg-zinc-50 p-4 pb-24 dark:bg-black">
           {exercises.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center text-zinc-500">
               <DumbbellIcon className="mb-4 h-12 w-12 opacity-20" />
@@ -84,18 +145,17 @@ export function ActiveSessionDrawer({ isOpen, onClose }: ActiveSessionDrawerProp
               <p className="text-sm">Tap the button below to start.</p>
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-4">
               {exercises.map((exercise, index) => (
-                <div key={exercise.id} className="rounded-xl border border-zinc-100 bg-zinc-50/50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-semibold">{index + 1}. {exercise.name}</h3>
-                    <button className="text-zinc-400 hover:text-red-500">
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                  {/* Sets would go here */}
-                  <div className="text-sm text-zinc-500 italic">Sets setup coming soon...</div>
-                </div>
+                <ExerciseCard
+                  key={exercise.id}
+                  exercise={exercise}
+                  exerciseIndex={index}
+                  onRemove={handleRemoveExercise}
+                  onAddSet={handleAddSet}
+                  onRemoveSet={handleRemoveSet}
+                  onUpdateSet={handleUpdateSet}
+                />
               ))}
             </div>
           )}
