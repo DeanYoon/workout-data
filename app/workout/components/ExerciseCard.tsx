@@ -1,11 +1,12 @@
 "use client";
 
 import { Check, Plus, Trash2, X } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { AnimatePresence, motion, useMotionValue, useTransform } from "framer-motion";
+import { useState } from "react";
 
 export interface ExerciseSet {
   id: string;
-  weight: number; // or string if you want to allow empty input easier, but number requested
+  weight: number;
   reps: number;
   isCompleted: boolean;
 }
@@ -23,6 +24,128 @@ interface ExerciseCardProps {
   onUpdateSet: (exerciseId: string, setId: string, field: "weight" | "reps" | "isCompleted", value: number | boolean) => void;
   onAddSet: (exerciseId: string) => void;
   onRemoveSet: (exerciseId: string, setId: string) => void;
+}
+
+interface ExerciseSetRowProps {
+  set: ExerciseSet;
+  index: number;
+  exerciseId: string;
+  onUpdateSet: (exerciseId: string, setId: string, field: "weight" | "reps" | "isCompleted", value: number | boolean) => void;
+  onRemoveSet: (exerciseId: string, setId: string) => void;
+}
+
+function ExerciseSetRow({ set, index, exerciseId, onUpdateSet, onRemoveSet }: ExerciseSetRowProps) {
+  const x = useMotionValue(0);
+  const [isDeleteReady, setIsDeleteReady] = useState(false);
+  const deleteThreshold = -50;
+
+  // Transform button background based on x position
+  const buttonBg = useTransform(
+    x,
+    [0, deleteThreshold],
+    [
+      set.isCompleted ? "rgb(34 197 94)" : "rgb(244 244 245)", // Green-500 or Zinc-100
+      "rgb(239 68 68)", // Red-500
+    ]
+  );
+  
+  // Dark mode transforms
+  const buttonBgDark = useTransform(
+    x,
+    [0, deleteThreshold],
+    [
+      set.isCompleted ? "rgb(34 197 94)" : "rgb(39 39 42)", // Green-500 or Zinc-800
+      "rgb(239 68 68)", // Red-500
+    ]
+  );
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: "auto" }}
+      exit={{ opacity: 0, height: 0 }}
+      className={`relative overflow-hidden ${
+        set.isCompleted
+          ? "bg-green-50/50 dark:bg-green-900/10"
+          : "even:bg-zinc-50/50 dark:even:bg-zinc-900/50"
+      }`}
+    >
+      <motion.div
+        drag="x"
+        dragConstraints={{ left: -80, right: 0 }}
+        style={{ x }}
+        onDragEnd={(e, info) => {
+          if (info.offset.x < deleteThreshold) {
+            setIsDeleteReady(true);
+          } else {
+            setIsDeleteReady(false);
+          }
+        }}
+        className="grid grid-cols-10 gap-2 px-4 py-2 items-center"
+      >
+        <div className="col-span-1 text-center font-medium text-zinc-500">
+          {index + 1}
+        </div>
+        
+        <div className="col-span-3">
+          <input
+            type="number"
+            value={set.weight || ""}
+            onChange={(e) =>
+              onUpdateSet(exerciseId, set.id, "weight", Number(e.target.value))
+            }
+            className={`w-full rounded-md border bg-transparent px-2 py-1.5 text-center text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500 ${
+              set.isCompleted 
+                ? "border-green-200 text-green-700 dark:border-green-800 dark:text-green-400" 
+                : "border-zinc-200 text-zinc-900 dark:border-zinc-700 dark:text-zinc-100"
+            }`}
+            placeholder="0"
+          />
+        </div>
+
+        <div className="col-span-3">
+          <input
+            type="number"
+            value={set.reps || ""}
+            onChange={(e) =>
+              onUpdateSet(exerciseId, set.id, "reps", Number(e.target.value))
+            }
+            className={`w-full rounded-md border bg-transparent px-2 py-1.5 text-center text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500 ${
+              set.isCompleted 
+                ? "border-green-200 text-green-700 dark:border-green-800 dark:text-green-400" 
+                : "border-zinc-200 text-zinc-900 dark:border-zinc-700 dark:text-zinc-100"
+            }`}
+            placeholder="0"
+          />
+        </div>
+
+        <div className="col-span-3 flex justify-center">
+          <motion.button
+            style={{
+              backgroundColor: typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches ? buttonBgDark : buttonBg,
+            }}
+            onClick={() => {
+              if (isDeleteReady) {
+                onRemoveSet(exerciseId, set.id);
+              } else {
+                onUpdateSet(exerciseId, set.id, "isCompleted", !set.isCompleted);
+              }
+            }}
+            className={`flex h-8 w-full items-center justify-center rounded-md transition-colors ${
+               !isDeleteReady && !set.isCompleted ? "text-zinc-400 dark:text-zinc-500" : "text-white"
+            }`}
+          >
+            {isDeleteReady ? (
+              <X className="h-4 w-4" />
+            ) : (
+              <Check className={`h-4 w-4 ${set.isCompleted ? "stroke-[3px]" : ""}`} />
+            )}
+          </motion.button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
 }
 
 export function ExerciseCard({
@@ -58,66 +181,19 @@ export function ExerciseCard({
       </div>
 
       {/* Sets */}
-      <div className="flex flex-col">
-        {exercise.sets.map((set, index) => (
-          <div
-            key={set.id}
-            className={`grid grid-cols-10 gap-2 px-4 py-2 items-center transition-colors ${
-              set.isCompleted
-                ? "bg-green-50/50 dark:bg-green-900/10"
-                : "even:bg-zinc-50/50 dark:even:bg-zinc-900/50"
-            }`}
-          >
-            <div className="col-span-1 text-center font-medium text-zinc-500">
-              {index + 1}
-            </div>
-            
-            <div className="col-span-3">
-              <input
-                type="number"
-                value={set.weight || ""}
-                onChange={(e) =>
-                  onUpdateSet(exercise.id, set.id, "weight", Number(e.target.value))
-                }
-                className={`w-full rounded-md border bg-transparent px-2 py-1.5 text-center text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500 ${
-                  set.isCompleted 
-                    ? "border-green-200 text-green-700 dark:border-green-800 dark:text-green-400" 
-                    : "border-zinc-200 text-zinc-900 dark:border-zinc-700 dark:text-zinc-100"
-                }`}
-                placeholder="0"
-              />
-            </div>
-
-            <div className="col-span-3">
-              <input
-                type="number"
-                value={set.reps || ""}
-                onChange={(e) =>
-                  onUpdateSet(exercise.id, set.id, "reps", Number(e.target.value))
-                }
-                className={`w-full rounded-md border bg-transparent px-2 py-1.5 text-center text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500 ${
-                  set.isCompleted 
-                    ? "border-green-200 text-green-700 dark:border-green-800 dark:text-green-400" 
-                    : "border-zinc-200 text-zinc-900 dark:border-zinc-700 dark:text-zinc-100"
-                }`}
-                placeholder="0"
-              />
-            </div>
-
-            <div className="col-span-3 flex justify-center">
-              <button
-                onClick={() => onUpdateSet(exercise.id, set.id, "isCompleted", !set.isCompleted)}
-                className={`flex h-8 w-full items-center justify-center rounded-md transition-all ${
-                  set.isCompleted
-                    ? "bg-green-500 text-white shadow-sm hover:bg-green-600"
-                    : "bg-zinc-100 text-zinc-400 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-500 dark:hover:bg-zinc-700"
-                }`}
-              >
-                <Check className={`h-4 w-4 ${set.isCompleted ? "stroke-[3px]" : ""}`} />
-              </button>
-            </div>
-          </div>
-        ))}
+      <div className="flex flex-col overflow-hidden">
+        <AnimatePresence initial={false}>
+          {exercise.sets.map((set, index) => (
+            <ExerciseSetRow
+              key={set.id}
+              set={set}
+              index={index}
+              exerciseId={exercise.id}
+              onUpdateSet={onUpdateSet}
+              onRemoveSet={onRemoveSet}
+            />
+          ))}
+        </AnimatePresence>
       </div>
 
       {/* Add Set Button */}
