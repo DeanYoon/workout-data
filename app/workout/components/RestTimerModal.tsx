@@ -1,6 +1,6 @@
 "use client";
 
-import { X, Plus, SkipForward } from "lucide-react";
+import { X, Plus, Minus, SkipForward } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect } from "react";
 
@@ -97,19 +97,19 @@ export function RestTimerModal({
               {/* Controls */}
               <div className="grid w-full grid-cols-3 gap-3">
                 <button
+                  onClick={() => onAddSeconds(-10)}
+                  className="flex flex-col items-center gap-1 rounded-2xl bg-zinc-100 p-3 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 transition-colors"
+                >
+                  <Minus className="h-5 w-5" />
+                  <span className="text-xs font-semibold">-10s</span>
+                </button>
+                
+                <button
                   onClick={() => onAddSeconds(10)}
                   className="flex flex-col items-center gap-1 rounded-2xl bg-zinc-100 p-3 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 transition-colors"
                 >
                   <Plus className="h-5 w-5" />
                   <span className="text-xs font-semibold">+10s</span>
-                </button>
-                
-                <button
-                  onClick={() => onAddSeconds(30)}
-                  className="flex flex-col items-center gap-1 rounded-2xl bg-zinc-100 p-3 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 transition-colors"
-                >
-                  <Plus className="h-5 w-5" />
-                  <span className="text-xs font-semibold">+30s</span>
                 </button>
 
                 <button
