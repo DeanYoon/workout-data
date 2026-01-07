@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Plus, X } from "lucide-react";
 import { AddExerciseModal } from "./AddExerciseModal";
+import { RestTimerModal } from "./RestTimerModal";
 import { ExerciseCard, ExerciseItem, ExerciseSet } from "./ExerciseCard";
 
 interface ActiveSessionDrawerProps {
@@ -12,11 +13,45 @@ interface ActiveSessionDrawerProps {
 
 export function ActiveSessionDrawer({ isOpen, onClose }: ActiveSessionDrawerProps) {
   const [elapsedTime, setElapsedTime] = useState(0);
-  const [restTime, setRestTime] = useState(0);
   const [exercises, setExercises] = useState<ExerciseItem[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  // Timer logic
+  // Rest Timer State
+  const [isResting, setIsResting] = useState(false);
+  const [restSecondsRemaining, setRestSecondsRemaining] = useState(60);
+  const [totalRestSeconds, setTotalRestSeconds] = useState(60);
+  const restTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Sound Effect
+  const playBeep = () => {
+    if (typeof window !== 'undefined') {
+      // Simple beep using Oscillator if supported (most modern browsers)
+      try {
+        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioContext) {
+          const ctx = new AudioContext();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.type = "sine";
+          osc.frequency.value = 880; // A5
+          gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.5);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.5);
+        }
+      } catch (e) {
+        console.error("Audio playback failed", e);
+      }
+      
+      // Vibration fallback
+      if (navigator.vibrate) {
+        navigator.vibrate([200, 100, 200]);
+      }
+    }
+  };
+
+  // Workout Duration Timer
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isOpen) {
@@ -25,11 +60,43 @@ export function ActiveSessionDrawer({ isOpen, onClose }: ActiveSessionDrawerProp
       }, 1000);
     } else {
       setElapsedTime(0);
-      setRestTime(0);
       setExercises([]);
+      stopRestTimer();
     }
     return () => clearInterval(interval);
   }, [isOpen]);
+
+  // Rest Timer Logic
+  const startRestTimer = () => {
+    if (restTimerRef.current) clearInterval(restTimerRef.current);
+    setIsResting(true);
+    setRestSecondsRemaining(60);
+    setTotalRestSeconds(60);
+
+    restTimerRef.current = setInterval(() => {
+      setRestSecondsRemaining((prev) => {
+        if (prev <= 1) {
+          stopRestTimer();
+          playBeep();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const stopRestTimer = () => {
+    if (restTimerRef.current) {
+      clearInterval(restTimerRef.current);
+      restTimerRef.current = null;
+    }
+    setIsResting(false);
+  };
+
+  const addRestTime = (seconds: number) => {
+    setRestSecondsRemaining((prev) => prev + seconds);
+    setTotalRestSeconds((prev) => prev + seconds);
+  };
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -93,6 +160,12 @@ export function ActiveSessionDrawer({ isOpen, onClose }: ActiveSessionDrawerProp
     field: "weight" | "reps" | "isCompleted",
     value: number | boolean
   ) => {
+    // Check if we need to start rest timer
+    // Triggers ONLY when marking as completed (true)
+    if (field === "isCompleted" && value === true) {
+      startRestTimer();
+    }
+
     setExercises((prev) =>
       prev.map((ex) => {
         if (ex.id === exerciseId) {
@@ -120,7 +193,9 @@ export function ActiveSessionDrawer({ isOpen, onClose }: ActiveSessionDrawerProp
         <header className="flex h-16 items-center justify-between border-b px-4 dark:border-zinc-800">
           <div className="flex flex-col items-center w-20">
              <span className="text-[10px] text-zinc-500 uppercase tracking-wide">Rest</span>
-             <span className="font-mono text-sm font-medium">{formatTime(restTime)}</span>
+             <span className="font-mono text-sm font-medium">
+                {isResting ? formatTime(restSecondsRemaining) : "00:00"}
+             </span>
           </div>
           
           <div className="flex flex-col items-center">
@@ -177,6 +252,14 @@ export function ActiveSessionDrawer({ isOpen, onClose }: ActiveSessionDrawerProp
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onAdd={handleAddExercise}
+      />
+
+      <RestTimerModal
+        isOpen={isResting}
+        secondsRemaining={restSecondsRemaining}
+        totalSeconds={totalRestSeconds}
+        onAddSeconds={addRestTime}
+        onSkip={stopRestTimer}
       />
     </>
   );
