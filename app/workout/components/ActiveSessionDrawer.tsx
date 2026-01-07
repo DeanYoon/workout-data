@@ -2,9 +2,12 @@
 
 import { useEffect, useState, useRef } from "react";
 import { Plus, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { AddExerciseModal } from "./AddExerciseModal";
 import { RestTimerModal } from "./RestTimerModal";
+import { WorkoutSummaryModal } from "./WorkoutSummaryModal";
 import { ExerciseCard, ExerciseItem, ExerciseSet } from "./ExerciseCard";
+import { supabase } from "@/lib/supabase";
 
 interface ActiveSessionDrawerProps {
   isOpen: boolean;
@@ -12,9 +15,12 @@ interface ActiveSessionDrawerProps {
 }
 
 export function ActiveSessionDrawer({ isOpen, onClose }: ActiveSessionDrawerProps) {
+  const router = useRouter();
   const [elapsedTime, setElapsedTime] = useState(0);
   const [exercises, setExercises] = useState<ExerciseItem[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Rest Timer State
   const [isResting, setIsResting] = useState(false);
@@ -25,7 +31,6 @@ export function ActiveSessionDrawer({ isOpen, onClose }: ActiveSessionDrawerProp
   // Sound Effect
   const playBeep = () => {
     if (typeof window !== 'undefined') {
-      // Simple beep using Oscillator if supported (most modern browsers)
       try {
         const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
         if (AudioContext) {
@@ -44,7 +49,6 @@ export function ActiveSessionDrawer({ isOpen, onClose }: ActiveSessionDrawerProp
         console.error("Audio playback failed", e);
       }
       
-      // Vibration fallback
       if (navigator.vibrate) {
         navigator.vibrate([200, 100, 200]);
       }
@@ -62,6 +66,8 @@ export function ActiveSessionDrawer({ isOpen, onClose }: ActiveSessionDrawerProp
       setElapsedTime(0);
       setExercises([]);
       stopRestTimer();
+      setIsSummaryOpen(false);
+      setIsSaving(false);
     }
     return () => clearInterval(interval);
   }, [isOpen]);
@@ -94,8 +100,20 @@ export function ActiveSessionDrawer({ isOpen, onClose }: ActiveSessionDrawerProp
   };
 
   const addRestTime = (seconds: number) => {
-    setRestSecondsRemaining((prev) => prev + seconds);
-    setTotalRestSeconds((prev) => prev + seconds);
+    setRestSecondsRemaining((prev) => {
+      const newVal = prev + seconds;
+      return newVal < 0 ? 0 : newVal;
+    });
+    // Optional: adjust total if adding time extends beyond original
+    // But usually we just track current remaining.
+    // If adding negative, we don't change totalRestSeconds usually to keep progress bar making sense?
+    // Actually progress bar uses totalRestSeconds.
+    // Let's update totalRestSeconds if we add time, but maybe not if subtract?
+    // For simplicity, let's keep total as max reference or update it.
+    // If we add 10s, total should probably increase to reflect new scale.
+    if (seconds > 0) {
+      setTotalRestSeconds((prev) => prev + seconds);
+    }
   };
 
   const formatTime = (seconds: number) => {
@@ -160,8 +178,6 @@ export function ActiveSessionDrawer({ isOpen, onClose }: ActiveSessionDrawerProp
     field: "weight" | "reps" | "isCompleted",
     value: number | boolean
   ) => {
-    // Check if we need to start rest timer
-    // Triggers ONLY when marking as completed (true)
     if (field === "isCompleted" && value === true) {
       startRestTimer();
     }
@@ -184,6 +200,97 @@ export function ActiveSessionDrawer({ isOpen, onClose }: ActiveSessionDrawerProp
     );
   };
 
+  // Stats Calculation
+  const calculateStats = () => {
+    let volume = 0;
+    let sets = 0;
+    
+    exercises.forEach(ex => {
+      ex.sets.forEach(set => {
+        if (set.isCompleted) {
+          volume += set.weight * set.reps;
+          sets += 1;
+        }
+      });
+    });
+
+    return { volume, sets };
+  };
+
+  const { volume: totalVolume, sets: totalSets } = calculateStats();
+
+  // Save Workout Logic
+  const handleSaveWorkout = async () => {
+    try {
+      setIsSaving(true);
+      
+      // Get current user (optional, if auth is implemented, otherwise might need to skip or use placeholder)
+      // Since supabase client is initialized, we can try to get session.
+      // If no session, we might fail RLS or need to allow anon.
+      // Assuming for this task we just insert.
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id || "anon_user"; // Fallback for dev without auth
+
+      // 1. Create Workout
+      const workoutId = crypto.randomUUID();
+      const endTime = new Date().toISOString();
+      const startTime = new Date(Date.now() - elapsedTime * 1000).toISOString();
+
+      const { error: workoutError } = await supabase.from('workouts').insert({
+        id: workoutId,
+        user_id: userId,
+        start_time: startTime,
+        end_time: endTime,
+        total_weight: totalVolume,
+        total_sets: totalSets
+      });
+
+      if (workoutError) throw workoutError;
+
+      // 2. Create Exercises & Sets
+      // We'll do this sequentially or in parallel batches.
+      for (let i = 0; i < exercises.length; i++) {
+        const ex = exercises[i];
+        
+        // Insert Exercise
+        const { error: exError } = await supabase.from('exercises').insert({
+          id: ex.id,
+          workout_id: workoutId,
+          name: ex.name,
+          order: i
+        });
+        
+        if (exError) throw exError;
+
+        // Insert Sets
+        const setsToInsert = ex.sets.map((set, setIndex) => ({
+          id: set.id,
+          exercise_id: ex.id,
+          weight: set.weight,
+          reps: set.reps,
+          is_completed: set.isCompleted,
+          order: setIndex
+        }));
+
+        if (setsToInsert.length > 0) {
+          const { error: setsError } = await supabase.from('sets').insert(setsToInsert);
+          if (setsError) throw setsError;
+        }
+      }
+
+      // Success
+      onClose(); // Close drawer
+      router.push("/"); // Navigate home
+      
+    } catch (error) {
+      console.error("Error saving workout:", error);
+      alert("Failed to save workout. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -204,7 +311,7 @@ export function ActiveSessionDrawer({ isOpen, onClose }: ActiveSessionDrawerProp
           </div>
 
           <button
-            onClick={onClose}
+            onClick={() => setIsSummaryOpen(true)}
             className="rounded-full bg-zinc-900 px-4 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 w-20"
           >
             Finish
@@ -260,6 +367,16 @@ export function ActiveSessionDrawer({ isOpen, onClose }: ActiveSessionDrawerProp
         totalSeconds={totalRestSeconds}
         onAddSeconds={addRestTime}
         onSkip={stopRestTimer}
+      />
+
+      <WorkoutSummaryModal
+        isOpen={isSummaryOpen}
+        totalTime={formatTime(elapsedTime)}
+        totalVolume={totalVolume}
+        totalSets={totalSets}
+        isSaving={isSaving}
+        onSave={handleSaveWorkout}
+        onCancel={() => setIsSummaryOpen(false)}
       />
     </>
   );
