@@ -1,8 +1,8 @@
 "use client";
 
 import { Check, Plus, Trash2, X } from "lucide-react";
-import { AnimatePresence, motion, useMotionValue, useTransform } from "framer-motion";
-import { useState } from "react";
+import { AnimatePresence, motion, useMotionValue, useTransform, animate, PanInfo } from "framer-motion";
+import { useState, useRef } from "react";
 
 export interface ExerciseSet {
   id: string;
@@ -36,28 +36,43 @@ interface ExerciseSetRowProps {
 
 function ExerciseSetRow({ set, index, exerciseId, onUpdateSet, onRemoveSet }: ExerciseSetRowProps) {
   const x = useMotionValue(0);
-  const [isDeleteReady, setIsDeleteReady] = useState(false);
-  const deleteThreshold = -50;
-
-  // Transform button background based on x position
-  const buttonBg = useTransform(
-    x,
-    [0, deleteThreshold],
-    [
-      set.isCompleted ? "rgb(34 197 94)" : "rgb(244 244 245)", // Green-500 or Zinc-100
-      "rgb(239 68 68)", // Red-500
-    ]
-  );
+  const [isDeleteMode, setIsDeleteMode] = useState(false);
   
-  // Dark mode transforms
-  const buttonBgDark = useTransform(
-    x,
-    [0, deleteThreshold],
-    [
-      set.isCompleted ? "rgb(34 197 94)" : "rgb(39 39 42)", // Green-500 or Zinc-800
-      "rgb(239 68 68)", // Red-500
-    ]
-  );
+  // Swipe Logic
+  const handlePan = (event: Event, info: PanInfo) => {
+    // Only allow swiping left
+    let newX = x.get() + info.delta.x;
+    // Clamp values: 0 to -60 (just enough to toggle)
+    if (newX > 0) newX = 0;
+    if (newX < -60) newX = -60;
+    x.set(newX);
+  };
+
+  const handlePanEnd = () => {
+    const currentX = x.get();
+    if (currentX < -30) {
+      // Snap to delete state
+      animate(x, -50, { type: "spring", stiffness: 400, damping: 30 });
+      setIsDeleteMode(true);
+    } else {
+      // Snap back to normal
+      animate(x, 0, { type: "spring", stiffness: 400, damping: 30 });
+      setIsDeleteMode(false);
+    }
+  };
+
+  // Button Transforms
+  // Check Button: Slide Left (-20px) and Fade Out
+  const checkOpacity = useTransform(x, [0, -40], [1, 0]);
+  const checkX = useTransform(x, [0, -40], [0, -20]);
+  const checkScale = useTransform(x, [0, -40], [1, 0.8]);
+  const checkPointerEvents = useTransform(x, (latest) => latest < -25 ? "none" : "auto");
+
+  // Delete Button: Slide In (from 20px) and Fade In
+  const deleteOpacity = useTransform(x, [-10, -50], [0, 1]);
+  const deleteX = useTransform(x, [-10, -50], [20, 0]);
+  const deleteScale = useTransform(x, [-10, -50], [0.8, 1]);
+  const deletePointerEvents = useTransform(x, (latest) => latest < -25 ? "auto" : "none");
 
   return (
     <motion.div
@@ -72,16 +87,9 @@ function ExerciseSetRow({ set, index, exerciseId, onUpdateSet, onRemoveSet }: Ex
       }`}
     >
       <motion.div
-        drag="x"
-        dragConstraints={{ left: -80, right: 0 }}
-        style={{ x }}
-        onDragEnd={(e, info) => {
-          if (info.offset.x < deleteThreshold) {
-            setIsDeleteReady(true);
-          } else {
-            setIsDeleteReady(false);
-          }
-        }}
+        onPan={handlePan}
+        onPanEnd={handlePanEnd}
+        style={{ touchAction: "pan-y" }}
         className="grid grid-cols-10 gap-2 px-4 py-2 items-center"
       >
         <div className="col-span-1 text-center font-medium text-zinc-500">
@@ -120,27 +128,38 @@ function ExerciseSetRow({ set, index, exerciseId, onUpdateSet, onRemoveSet }: Ex
           />
         </div>
 
-        <div className="col-span-3 flex justify-center">
+        {/* Action Button Container */}
+        <div className="col-span-3 flex justify-center relative h-8">
+          {/* Check Button (Done) */}
           <motion.button
             style={{
-              backgroundColor: typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches ? buttonBgDark : buttonBg,
+              opacity: checkOpacity,
+              x: checkX,
+              scale: checkScale,
+              pointerEvents: checkPointerEvents,
             }}
-            onClick={() => {
-              if (isDeleteReady) {
-                onRemoveSet(exerciseId, set.id);
-              } else {
-                onUpdateSet(exerciseId, set.id, "isCompleted", !set.isCompleted);
-              }
-            }}
-            className={`flex h-8 w-full items-center justify-center rounded-md transition-colors ${
-               !isDeleteReady && !set.isCompleted ? "text-zinc-400 dark:text-zinc-500" : "text-white"
+            onClick={() => onUpdateSet(exerciseId, set.id, "isCompleted", !set.isCompleted)}
+            className={`absolute inset-0 flex items-center justify-center rounded-md transition-colors ${
+               set.isCompleted 
+                ? "bg-green-500 text-white shadow-sm hover:bg-green-600" 
+                : "bg-zinc-100 text-zinc-400 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-500 dark:hover:bg-zinc-700"
             }`}
           >
-            {isDeleteReady ? (
-              <X className="h-4 w-4" />
-            ) : (
-              <Check className={`h-4 w-4 ${set.isCompleted ? "stroke-[3px]" : ""}`} />
-            )}
+            <Check className={`h-4 w-4 ${set.isCompleted ? "stroke-[3px]" : ""}`} />
+          </motion.button>
+
+          {/* Delete Button (X) */}
+          <motion.button
+            style={{
+              opacity: deleteOpacity,
+              x: deleteX,
+              scale: deleteScale,
+              pointerEvents: deletePointerEvents,
+            }}
+            onClick={() => onRemoveSet(exerciseId, set.id)}
+            className="absolute inset-0 flex items-center justify-center rounded-md bg-red-500 text-white shadow-sm hover:bg-red-600"
+          >
+            <X className="h-4 w-4" />
           </motion.button>
         </div>
       </motion.div>
