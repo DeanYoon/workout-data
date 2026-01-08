@@ -14,7 +14,7 @@ export default function WorkoutPage() {
   const [historyWorkouts, setHistoryWorkouts] = useState<WorkoutWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedWorkout, setSelectedWorkout] = useState<WorkoutWithDetails | null>(null);
-  
+
   // Active session state props
   const [activeSessionInitialData, setActiveSessionInitialData] = useState<ExerciseItem[] | undefined>(undefined);
   const [activeSessionInitialName, setActiveSessionInitialName] = useState<string | undefined>(undefined);
@@ -48,7 +48,7 @@ export default function WorkoutPage() {
         }));
 
         const uniqueWorkoutsMap = new Map<string, WorkoutWithDetails>();
-        
+
         formattedData.forEach((workout: WorkoutWithDetails) => {
           const nameKey = workout.name ? workout.name.trim() : "Untitled";
           if (!uniqueWorkoutsMap.has(nameKey)) {
@@ -69,23 +69,8 @@ export default function WorkoutPage() {
     fetchWorkouts();
   }, []);
 
-  const handleEditName = async (id: string, newName: string) => {
-    try {
-      setHistoryWorkouts((prev) =>
-        prev.map((w) => (w.id === id ? { ...w, name: newName } : w))
-      );
-
-      const { error } = await supabase
-        .from("workouts")
-        .update({ name: newName })
-        .eq("id", id);
-
-      if (error) throw error;
-    } catch (error) {
-      console.error("Error updating name:", error);
-      alert("Failed to rename workout");
-      fetchWorkouts();
-    }
+  const handleDelete = (id: string) => {
+    setHistoryWorkouts((prev) => prev.filter((w) => w.id !== id));
   };
 
   const handleStartRoutine = (workout: WorkoutWithDetails) => {
@@ -119,7 +104,7 @@ export default function WorkoutPage() {
     const date = new Date(dateStr);
     const now = new Date();
     const isToday = date.toDateString() === now.toDateString();
-    
+
     if (isToday) return "Today";
     const yesterday = new Date(now);
     yesterday.setDate(yesterday.getDate() - 1);
@@ -149,7 +134,7 @@ export default function WorkoutPage() {
       {/* History Grid */}
       <div className="p-4">
         <h2 className="mb-3 text-sm font-medium text-zinc-500 uppercase tracking-wider">Recent History</h2>
-        
+
         {isLoading ? (
           <div className="grid grid-cols-2 gap-3">
             {[1, 2, 3, 4].map((i) => (
@@ -157,8 +142,8 @@ export default function WorkoutPage() {
                 <div className="h-4 w-12 bg-zinc-200 rounded dark:bg-zinc-800"></div>
                 <div className="h-6 w-24 bg-zinc-200 rounded dark:bg-zinc-800"></div>
                 <div className="mt-auto flex flex-col gap-2">
-                   <div className="h-3 w-16 bg-zinc-200 rounded dark:bg-zinc-800"></div>
-                   <div className="h-3 w-16 bg-zinc-200 rounded dark:bg-zinc-800"></div>
+                  <div className="h-3 w-16 bg-zinc-200 rounded dark:bg-zinc-800"></div>
+                  <div className="h-3 w-16 bg-zinc-200 rounded dark:bg-zinc-800"></div>
                 </div>
               </div>
             ))}
@@ -177,7 +162,7 @@ export default function WorkoutPage() {
                 duration={formatDuration(workout.start_time, workout.end_time)}
                 totalWeight={workout.total_weight}
                 workoutName={workout.name}
-                onEditName={handleEditName}
+                onDelete={handleDelete}
                 onClick={() => setSelectedWorkout(workout)}
               />
             ))}

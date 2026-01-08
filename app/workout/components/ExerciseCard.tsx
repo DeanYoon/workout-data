@@ -3,6 +3,7 @@
 import { Check, Plus, Trash2, X } from "lucide-react";
 import { AnimatePresence, motion, useMotionValue, useTransform, animate, PanInfo } from "framer-motion";
 import { useState, useRef } from "react";
+import { DeleteConfirmModal } from "./DeleteConfirmModal";
 
 export interface ExerciseSet {
   id: string;
@@ -37,7 +38,8 @@ interface ExerciseSetRowProps {
 function ExerciseSetRow({ set, index, exerciseId, onUpdateSet, onRemoveSet }: ExerciseSetRowProps) {
   const x = useMotionValue(0);
   const [isDeleteMode, setIsDeleteMode] = useState(false);
-  
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
   // Swipe Logic
   const handlePan = (event: Event, info: PanInfo) => {
     // Only allow swiping left
@@ -80,11 +82,10 @@ function ExerciseSetRow({ set, index, exerciseId, onUpdateSet, onRemoveSet }: Ex
       initial={{ opacity: 0, height: 0 }}
       animate={{ opacity: 1, height: "auto" }}
       exit={{ opacity: 0, height: 0 }}
-      className={`relative overflow-hidden ${
-        set.isCompleted
-          ? "bg-green-50/50 dark:bg-green-900/10"
-          : "even:bg-zinc-50/50 dark:even:bg-zinc-900/50"
-      }`}
+      className={`relative overflow-hidden ${set.isCompleted
+        ? "bg-green-50/50 dark:bg-green-900/10"
+        : "even:bg-zinc-50/50 dark:even:bg-zinc-900/50"
+        }`}
     >
       <motion.div
         onPan={handlePan}
@@ -95,7 +96,7 @@ function ExerciseSetRow({ set, index, exerciseId, onUpdateSet, onRemoveSet }: Ex
         <div className="col-span-1 text-center font-medium text-zinc-500">
           {index + 1}
         </div>
-        
+
         <div className="col-span-3">
           <input
             type="number"
@@ -103,11 +104,10 @@ function ExerciseSetRow({ set, index, exerciseId, onUpdateSet, onRemoveSet }: Ex
             onChange={(e) =>
               onUpdateSet(exerciseId, set.id, "weight", Number(e.target.value))
             }
-            className={`w-full rounded-md border bg-transparent px-2 py-1.5 text-center text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500 ${
-              set.isCompleted 
-                ? "border-green-200 text-green-700 dark:border-green-800 dark:text-green-400" 
-                : "border-zinc-200 text-zinc-900 dark:border-zinc-700 dark:text-zinc-100"
-            }`}
+            className={`w-full rounded-md border bg-transparent px-2 py-1.5 text-center text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500 ${set.isCompleted
+              ? "border-green-200 text-green-700 dark:border-green-800 dark:text-green-400"
+              : "border-zinc-200 text-zinc-900 dark:border-zinc-700 dark:text-zinc-100"
+              }`}
             placeholder="0"
           />
         </div>
@@ -119,11 +119,10 @@ function ExerciseSetRow({ set, index, exerciseId, onUpdateSet, onRemoveSet }: Ex
             onChange={(e) =>
               onUpdateSet(exerciseId, set.id, "reps", Number(e.target.value))
             }
-            className={`w-full rounded-md border bg-transparent px-2 py-1.5 text-center text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500 ${
-              set.isCompleted 
-                ? "border-green-200 text-green-700 dark:border-green-800 dark:text-green-400" 
-                : "border-zinc-200 text-zinc-900 dark:border-zinc-700 dark:text-zinc-100"
-            }`}
+            className={`w-full rounded-md border bg-transparent px-2 py-1.5 text-center text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500 ${set.isCompleted
+              ? "border-green-200 text-green-700 dark:border-green-800 dark:text-green-400"
+              : "border-zinc-200 text-zinc-900 dark:border-zinc-700 dark:text-zinc-100"
+              }`}
             placeholder="0"
           />
         </div>
@@ -139,11 +138,10 @@ function ExerciseSetRow({ set, index, exerciseId, onUpdateSet, onRemoveSet }: Ex
               pointerEvents: checkPointerEvents,
             }}
             onClick={() => onUpdateSet(exerciseId, set.id, "isCompleted", !set.isCompleted)}
-            className={`absolute inset-0 flex items-center justify-center rounded-md transition-colors ${
-               set.isCompleted 
-                ? "bg-green-500 text-white shadow-sm hover:bg-green-600" 
-                : "bg-zinc-100 text-zinc-400 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-500 dark:hover:bg-zinc-700"
-            }`}
+            className={`absolute inset-0 flex items-center justify-center rounded-md transition-colors ${set.isCompleted
+              ? "bg-green-500 text-white shadow-sm hover:bg-green-600"
+              : "bg-zinc-100 text-zinc-400 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-500 dark:hover:bg-zinc-700"
+              }`}
           >
             <Check className={`h-4 w-4 ${set.isCompleted ? "stroke-[3px]" : ""}`} />
           </motion.button>
@@ -156,13 +154,32 @@ function ExerciseSetRow({ set, index, exerciseId, onUpdateSet, onRemoveSet }: Ex
               scale: deleteScale,
               pointerEvents: deletePointerEvents,
             }}
-            onClick={() => onRemoveSet(exerciseId, set.id)}
+            onClick={() => setIsDeleteModalOpen(true)}
             className="absolute inset-0 flex items-center justify-center rounded-md bg-red-500 text-white shadow-sm hover:bg-red-600"
           >
             <X className="h-4 w-4" />
           </motion.button>
         </div>
       </motion.div>
+
+      <DeleteConfirmModal
+        isOpen={isDeleteModalOpen}
+        title="Delete Set?"
+        message="Are you sure you want to remove this set?"
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={() => {
+          onRemoveSet(exerciseId, set.id);
+          setIsDeleteModalOpen(false);
+          setIsDeleteMode(false);
+          animate(x, 0, { type: "spring", stiffness: 400, damping: 30 });
+        }}
+        onCancel={() => {
+          setIsDeleteModalOpen(false);
+          setIsDeleteMode(false);
+          animate(x, 0, { type: "spring", stiffness: 400, damping: 30 });
+        }}
+      />
     </motion.div>
   );
 }
@@ -175,7 +192,8 @@ export function ExerciseCard({
   onAddSet,
   onRemoveSet,
 }: ExerciseCardProps) {
-  
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
   return (
     <div className="rounded-xl border border-zinc-100 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
       {/* Header */}
@@ -184,7 +202,7 @@ export function ExerciseCard({
           {exerciseIndex + 1}. {exercise.name}
         </h3>
         <button
-          onClick={() => onRemove(exercise.id)}
+          onClick={() => setIsDeleteModalOpen(true)}
           className="text-zinc-400 hover:text-red-500"
         >
           <X className="h-4 w-4" />
@@ -225,6 +243,20 @@ export function ExerciseCard({
           Add Set
         </button>
       </div>
+
+      <DeleteConfirmModal
+        isOpen={isDeleteModalOpen}
+        title="Delete Exercise?"
+        message={`Are you sure you want to remove "${exercise.name}"?`}
+        subMessage="All sets for this exercise will be removed."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={() => {
+          onRemove(exercise.id);
+          setIsDeleteModalOpen(false);
+        }}
+        onCancel={() => setIsDeleteModalOpen(false)}
+      />
     </div>
   );
 }
