@@ -1,5 +1,6 @@
 export interface Workout {
   id: string;
+  name: string; // Added name
   start_time: string;
   end_time: string | null;
   total_weight: number;
@@ -21,4 +22,11 @@ export interface Set {
   reps: number;
   is_completed: boolean;
   order: number;
+}
+
+// Helper type for fetching nested data from Supabase
+export interface WorkoutWithDetails extends Workout {
+  exercises: (Exercise & {
+    sets: Set[];
+  })[];
 }

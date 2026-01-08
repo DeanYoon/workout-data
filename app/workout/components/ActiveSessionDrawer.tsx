@@ -12,9 +12,10 @@ import { supabase } from "@/lib/supabase";
 interface ActiveSessionDrawerProps {
   isOpen: boolean;
   onClose: () => void;
+  initialData?: ExerciseItem[]; // Prop for loading routine
 }
 
-export function ActiveSessionDrawer({ isOpen, onClose }: ActiveSessionDrawerProps) {
+export function ActiveSessionDrawer({ isOpen, onClose, initialData }: ActiveSessionDrawerProps) {
   const router = useRouter();
   const [elapsedTime, setElapsedTime] = useState(0);
   const [exercises, setExercises] = useState<ExerciseItem[]>([]);
@@ -55,7 +56,7 @@ export function ActiveSessionDrawer({ isOpen, onClose }: ActiveSessionDrawerProp
     }
   };
 
-  // Workout Duration Timer
+  // Workout Duration Timer & Initialization
   useEffect(() => {
     let interval: NodeJS.Timeout;
     
@@ -64,6 +65,14 @@ export function ActiveSessionDrawer({ isOpen, onClose }: ActiveSessionDrawerProp
       interval = setInterval(() => {
         setElapsedTime((prev) => prev + 1);
       }, 1000);
+
+      // Load initial data if provided and exercises are empty (first open)
+      // Or if explicitly wanting to reset. For now, check length 0 or if we want to force reset on open.
+      // Better: Reset on open if initialData provided
+      if (initialData && exercises.length === 0) {
+        setExercises(initialData);
+      }
+
     } else if (!isOpen) {
       // Reset when closed
       setElapsedTime(0);
@@ -73,9 +82,8 @@ export function ActiveSessionDrawer({ isOpen, onClose }: ActiveSessionDrawerProp
       setIsSaving(false);
     }
     
-    // If isSummaryOpen is true, we clear interval (pause) via cleanup or condition above
     return () => clearInterval(interval);
-  }, [isOpen, isSummaryOpen]); // Added isSummaryOpen dependency
+  }, [isOpen, isSummaryOpen, initialData]); // Added initialData dependency
 
   // Rest Timer Logic
   const startRestTimer = () => {
@@ -218,19 +226,16 @@ export function ActiveSessionDrawer({ isOpen, onClose }: ActiveSessionDrawerProp
   const { volume: totalVolume, sets: totalSets } = calculateStats();
 
   const handleFinishClick = () => {
-    // Stop rest timer if running
     stopRestTimer();
-    // Open summary modal, which triggers effect dependency to pause workout timer
     setIsSummaryOpen(true);
   };
 
   const handleCancelSummary = () => {
     setIsSummaryOpen(false);
-    // Timer will resume automatically due to useEffect dependency
   };
 
   // Save Workout Logic
-  const handleSaveWorkout = async () => {
+  const handleSaveWorkout = async (name: string) => {
     try {
       setIsSaving(true);
       
@@ -252,6 +257,7 @@ export function ActiveSessionDrawer({ isOpen, onClose }: ActiveSessionDrawerProp
       const workoutData = {
         id: workoutId,
         user_id: userId,
+        name: name, // Save the name!
         start_time: startTime,
         end_time: endTime,
         total_weight: totalVolume,
@@ -315,7 +321,12 @@ export function ActiveSessionDrawer({ isOpen, onClose }: ActiveSessionDrawerProp
 
       // Success
       onClose(); // Close drawer
-      router.push("/"); // Navigate home
+      // router.push("/"); // Don't redirect home, stay on workout page to see updated history
+      // Actually, user might want to go to home or stay. The prompt says "update automatically" implying we stay on /workout or go back there.
+      // But previous prompt said "Redirect to home".
+      // Current prompt for history tab implies we are ON the workout page.
+      // Let's assume we just close the drawer and let page.tsx refresh data.
+      window.location.reload(); // Force reload to see new history for now, or just let page.tsx handle it if we trigger re-fetch.
       
     } catch (error) {
       console.error("Full error object in catch block:", error);
