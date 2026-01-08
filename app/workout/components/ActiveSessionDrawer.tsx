@@ -234,38 +234,62 @@ export function ActiveSessionDrawer({ isOpen, onClose }: ActiveSessionDrawerProp
     try {
       setIsSaving(true);
       
-      const { data: { user } } = await supabase.auth.getUser();
+      console.log("Starting save process...");
+
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) {
+        console.error("Error fetching user:", userError);
+      }
+      
       const userId = user?.id || "anon_user";
+      console.log("User ID resolved to:", userId);
 
       // 1. Create Workout
       const workoutId = crypto.randomUUID();
       const endTime = new Date().toISOString();
       const startTime = new Date(Date.now() - elapsedTime * 1000).toISOString();
-
-      const { error: workoutError } = await supabase.from('workouts').insert({
+      
+      const workoutData = {
         id: workoutId,
         user_id: userId,
         start_time: startTime,
         end_time: endTime,
         total_weight: totalVolume,
         total_sets: totalSets
-      });
+      };
 
-      if (workoutError) throw workoutError;
+      console.log("Inserting workout:", workoutData);
+
+      const { error: workoutError } = await supabase.from('workouts').insert(workoutData);
+
+      if (workoutError) {
+        console.error("Error inserting workout:", workoutError);
+        throw workoutError;
+      }
+      
+      console.log("Workout inserted successfully");
 
       // 2. Create Exercises & Sets
       for (let i = 0; i < exercises.length; i++) {
         const ex = exercises[i];
+        console.log(`Processing exercise ${i + 1}/${exercises.length}:`, ex.name);
         
         // Insert Exercise
-        const { error: exError } = await supabase.from('exercises').insert({
+        const exerciseData = {
           id: ex.id,
           workout_id: workoutId,
           name: ex.name,
           order: i
-        });
+        };
         
-        if (exError) throw exError;
+        console.log("Inserting exercise:", exerciseData);
+
+        const { error: exError } = await supabase.from('exercises').insert(exerciseData);
+        
+        if (exError) {
+          console.error(`Error inserting exercise ${ex.name}:`, exError);
+          throw exError;
+        }
 
         // Insert Sets
         const setsToInsert = ex.sets.map((set, setIndex) => ({
@@ -278,18 +302,24 @@ export function ActiveSessionDrawer({ isOpen, onClose }: ActiveSessionDrawerProp
         }));
 
         if (setsToInsert.length > 0) {
+          console.log(`Inserting ${setsToInsert.length} sets for ${ex.name}:`, setsToInsert);
           const { error: setsError } = await supabase.from('sets').insert(setsToInsert);
-          if (setsError) throw setsError;
+          if (setsError) {
+             console.error(`Error inserting sets for exercise ${ex.name}:`, setsError);
+             throw setsError;
+          }
         }
       }
+
+      console.log("Save completed successfully");
 
       // Success
       onClose(); // Close drawer
       router.push("/"); // Navigate home
       
     } catch (error) {
-      console.error("Error saving workout:", error);
-      alert("Failed to save workout. Please try again.");
+      console.error("Full error object in catch block:", error);
+      alert("Failed to save workout. Check console for details.");
     } finally {
       setIsSaving(false);
     }
