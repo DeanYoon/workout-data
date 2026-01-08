@@ -246,6 +246,10 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
     stopRestTimer();
     setIsSummaryOpen(true);
   };
+  
+  const handleCancelSummary = () => {
+    setIsSummaryOpen(false);
+  };
 
   const handleCancelWorkout = () => {
     if (window.confirm("Cancel workout? Current progress will be lost.")) {
@@ -429,23 +433,15 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
         onSkip={stopRestTimer}
       />
 
-      {/* We pass initialName to summary modal so it prepopulates input */}
-      {/* But Wait, the Summary Modal has its own input state initialized to empty string. */}
-      {/* We need to update SummaryModal to accept initialValue or just force it to use prop if we want it pre-filled. */}
-      {/* Let's pass the current workoutName as a prop to pre-fill it. */}
       <WorkoutSummaryModal
         isOpen={isSummaryOpen}
         totalTime={formatTime(elapsedTime)}
         totalVolume={totalVolume}
         totalSets={totalSets}
         isSaving={isSaving}
+        initialName={workoutName}
         onSave={handleSaveWorkout}
         onCancel={handleCancelSummary}
-        // We'll need to modify WorkoutSummaryModal to accept initialName
-        // For now, let's just assume we might need to modify it or it starts empty.
-        // Task requirement didn't explicitly say pre-fill summary modal, but logic implies persistence.
-        // "Name your workout to save" - imply rename or confirm.
-        // Let's modify SummaryModal next to be safe.
       />
     </>
   );
