@@ -10,7 +10,8 @@ interface WorkoutSummaryModalProps {
   totalVolume: number;
   totalSets: number;
   isSaving: boolean;
-  initialName?: string; // Add this prop
+  initialName?: string;
+  isNameEditable?: boolean; // Whether name can be edited
   onSave: (name: string) => void;
   onCancel: () => void;
 }
@@ -22,6 +23,7 @@ export function WorkoutSummaryModal({
   totalSets,
   isSaving,
   initialName = "",
+  isNameEditable = true,
   onSave,
   onCancel,
 }: WorkoutSummaryModalProps) {
@@ -69,21 +71,27 @@ export function WorkoutSummaryModal({
                 Workout Complete!
               </h2>
               <p className="mb-6 text-sm text-zinc-500 dark:text-zinc-400">
-                Confirm name to save your workout.
+                {isNameEditable ? "Confirm name to save your workout." : "Your workout will be saved."}
               </p>
 
               {/* Name Input */}
               <div className="w-full mb-6">
                 <label htmlFor="workoutName" className="sr-only">Workout Name</label>
-                <input
-                  id="workoutName"
-                  type="text"
-                  placeholder="e.g. Push Day"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-center font-medium outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
-                  autoFocus
-                />
+                {isNameEditable ? (
+                  <input
+                    id="workoutName"
+                    type="text"
+                    placeholder="e.g. Push Day"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-center font-medium outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
+                    autoFocus
+                  />
+                ) : (
+                  <div className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-center font-medium dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 text-zinc-600 dark:text-zinc-400">
+                    {name || "Untitled Workout"}
+                  </div>
+                )}
               </div>
 
               <div className="mb-8 grid w-full grid-cols-3 gap-4">

@@ -39,11 +39,10 @@ export function BottomNavigation() {
             <Link
               key={href}
               href={href}
-              className={`flex flex-col items-center justify-center gap-1 p-2 transition-colors ${
-                isActive
-                  ? "text-blue-600 dark:text-blue-500"
-                  : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-              }`}
+              className={`flex flex-col items-center justify-center gap-1 pb-4 transition-colors ${isActive
+                ? "text-blue-600 dark:text-blue-500"
+                : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                }`}
             >
               <Icon className={`h-6 w-6 ${isActive ? "fill-current/20" : ""}`} />
               <span className="text-[10px] font-medium">{name}</span>

@@ -386,7 +386,7 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
         </header>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto bg-zinc-50 p-4 pb-24 dark:bg-black">
+        <div className="flex-1 overflow-y-auto bg-zinc-50 p-4 pb-4 dark:bg-black">
           {/* Rest Timer Banner if active */}
           {isResting && (
             <div className="mb-4 flex items-center justify-between rounded-xl bg-blue-50 p-3 px-4 text-blue-900 dark:bg-blue-900/20 dark:text-blue-100">
@@ -414,17 +414,17 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
               ))}
             </div>
           )}
-        </div>
 
-        {/* Bottom Action */}
-        <div className="absolute bottom-0 left-0 right-0 border-t bg-white p-4 pb-safe dark:bg-black dark:border-zinc-800">
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-50 py-3.5 font-semibold text-blue-600 transition-colors hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
-          >
-            <Plus className="h-5 w-5" />
-            Add Exercise
-          </button>
+          {/* Add Exercise Button - positioned after exercises */}
+          <div className="mt-4">
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-50 py-3.5 font-semibold text-blue-600 transition-colors hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
+            >
+              <Plus className="h-5 w-5" />
+              Add Exercise
+            </button>
+          </div>
         </div>
       </div>
 
@@ -449,6 +449,7 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
         totalSets={totalSets}
         isSaving={isSaving}
         initialName={workoutName}
+        isNameEditable={!initialWorkoutName}
         onSave={handleSaveWorkout}
         onCancel={handleCancelSummary}
       />
