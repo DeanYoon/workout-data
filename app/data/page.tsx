@@ -63,12 +63,55 @@ export default function DataPage() {
     }));
   }, [selectedExercise, selectedMetric, data]);
 
+  // Calculate summary stats
+  const summaryStats = useMemo(() => {
+    if (!selectedExercise || !data[selectedExercise] || data[selectedExercise].length === 0) {
+      return { personalBest: 0, totalRecords: 0 };
+    }
+
+    const exerciseData = data[selectedExercise];
+    const personalBest = Math.max(...exerciseData.map((entry) => entry.maxWeight));
+    const totalRecords = exerciseData.length;
+
+    return { personalBest, totalRecords };
+  }, [selectedExercise, data]);
+
   if (isLoading) {
     return (
-      <div className="p-4">
-        <h1 className="text-2xl font-bold mb-4">Data</h1>
-        <div className="flex items-center justify-center py-12">
-          <p className="text-zinc-500">Loading analytics...</p>
+      <div className="relative min-h-screen bg-zinc-50 pb-24 dark:bg-black">
+        <div className="sticky top-0 z-10 border-b bg-white/80 p-4 backdrop-blur-md dark:border-zinc-800 dark:bg-black/80">
+          <h1 className="mb-4 text-2xl font-bold tracking-tight">Data</h1>
+        </div>
+        <div className="p-4 space-y-4">
+          {/* Exercise Selector Skeleton */}
+          <div>
+            <div className="h-4 w-16 bg-zinc-200 rounded mb-2 animate-pulse dark:bg-zinc-800"></div>
+            <div className="h-12 w-full bg-zinc-200 rounded-xl animate-pulse dark:bg-zinc-800"></div>
+          </div>
+          {/* Metric Selector Skeleton */}
+          <div>
+            <div className="h-4 w-16 bg-zinc-200 rounded mb-2 animate-pulse dark:bg-zinc-800"></div>
+            <div className="flex gap-2">
+              <div className="flex-1 h-12 bg-zinc-200 rounded-xl animate-pulse dark:bg-zinc-800"></div>
+              <div className="flex-1 h-12 bg-zinc-200 rounded-xl animate-pulse dark:bg-zinc-800"></div>
+              <div className="flex-1 h-12 bg-zinc-200 rounded-xl animate-pulse dark:bg-zinc-800"></div>
+            </div>
+          </div>
+          {/* Chart Skeleton */}
+          <div className="rounded-2xl bg-white dark:bg-zinc-900 p-4 shadow-sm">
+            <div className="h-[300px] bg-zinc-200 rounded animate-pulse dark:bg-zinc-800"></div>
+          </div>
+          {/* Summary Cards Skeleton */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-2xl bg-white dark:bg-zinc-900 p-4 shadow-sm">
+              <div className="h-4 w-20 bg-zinc-200 rounded mb-2 animate-pulse dark:bg-zinc-800"></div>
+              <div className="h-8 w-16 bg-zinc-200 rounded animate-pulse dark:bg-zinc-800"></div>
+            </div>
+            <div className="rounded-2xl bg-white dark:bg-zinc-900 p-4 shadow-sm">
+              <div className="h-4 w-20 bg-zinc-200 rounded mb-2 animate-pulse dark:bg-zinc-800"></div>
+              <div className="h-8 w-16 bg-zinc-200 rounded animate-pulse dark:bg-zinc-800"></div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -175,7 +218,7 @@ export default function DataPage() {
         <div className="rounded-2xl bg-white dark:bg-zinc-900 p-4 shadow-sm">
           {chartData.length === 0 ? (
             <div className="flex items-center justify-center py-12">
-              <p className="text-zinc-500">No data available for selected exercise.</p>
+              <p className="text-zinc-500 dark:text-zinc-400">아직 기록된 운동 데이터가 없습니다.</p>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={300}>
@@ -188,6 +231,7 @@ export default function DataPage() {
                   tick={{ fill: '#71717a', fontSize: 12 }}
                 />
                 <YAxis
+                  domain={['auto', 'auto']}
                   stroke="#71717a"
                   className="text-xs"
                   tick={{ fill: '#71717a', fontSize: 12 }}
@@ -222,6 +266,31 @@ export default function DataPage() {
             </ResponsiveContainer>
           )}
         </div>
+
+        {/* Summary Stats */}
+        {selectedExercise && data[selectedExercise] && data[selectedExercise].length > 0 && (
+          <div className="grid grid-cols-2 gap-3">
+            {/* Personal Best Card */}
+            <div className="rounded-2xl bg-white dark:bg-zinc-900 p-4 shadow-sm">
+              <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-1">
+                Personal Best (PR)
+              </p>
+              <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+                {summaryStats.personalBest} <span className="text-base font-normal text-zinc-500">kg</span>
+              </p>
+            </div>
+
+            {/* Total Records Card */}
+            <div className="rounded-2xl bg-white dark:bg-zinc-900 p-4 shadow-sm">
+              <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-1">
+                Total Records
+              </p>
+              <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+                {summaryStats.totalRecords} <span className="text-base font-normal text-zinc-500">days</span>
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
