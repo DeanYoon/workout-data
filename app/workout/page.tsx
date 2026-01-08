@@ -14,13 +14,15 @@ export default function WorkoutPage() {
   const [historyWorkouts, setHistoryWorkouts] = useState<WorkoutWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedWorkout, setSelectedWorkout] = useState<WorkoutWithDetails | null>(null);
+  
+  // Active session state props
   const [activeSessionInitialData, setActiveSessionInitialData] = useState<ExerciseItem[] | undefined>(undefined);
+  const [activeSessionInitialName, setActiveSessionInitialName] = useState<string | undefined>(undefined);
 
   // Fetch Workouts
   const fetchWorkouts = async () => {
     try {
       setIsLoading(true);
-      // Fetch workouts with exercises and sets, ordered by start_time desc
       const { data, error } = await supabase
         .from("workouts")
         .select(`
@@ -35,7 +37,6 @@ export default function WorkoutPage() {
       if (error) throw error;
 
       if (data) {
-        // Sort exercises by order
         const formattedData = data.map((w: any) => ({
           ...w,
           exercises: w.exercises
@@ -46,15 +47,10 @@ export default function WorkoutPage() {
             }))
         }));
 
-        // Filter distinctive latest workouts by name
         const uniqueWorkoutsMap = new Map<string, WorkoutWithDetails>();
         
         formattedData.forEach((workout: WorkoutWithDetails) => {
-          // Normalize name for key (trim and lowercase to avoid slight duplicates if desired, 
-          // strictly speaking request said "same name", so case sensitive is safer default unless specified)
           const nameKey = workout.name ? workout.name.trim() : "Untitled";
-          
-          // Since we ordered by desc, the first time we see a name, it's the latest
           if (!uniqueWorkoutsMap.has(nameKey)) {
             uniqueWorkoutsMap.set(nameKey, workout);
           }
@@ -73,10 +69,8 @@ export default function WorkoutPage() {
     fetchWorkouts();
   }, []);
 
-  // Handle Edit Name
   const handleEditName = async (id: string, newName: string) => {
     try {
-      // Optimistic update
       setHistoryWorkouts((prev) =>
         prev.map((w) => (w.id === id ? { ...w, name: newName } : w))
       );
@@ -87,32 +81,29 @@ export default function WorkoutPage() {
         .eq("id", id);
 
       if (error) throw error;
-      
-      // Re-fetch to ensure consistency if needed, but optimistic is fine for now
     } catch (error) {
       console.error("Error updating name:", error);
       alert("Failed to rename workout");
-      fetchWorkouts(); // Revert on error
+      fetchWorkouts();
     }
   };
 
-  // Handle Start Routine
   const handleStartRoutine = (workout: WorkoutWithDetails) => {
-    // Transform history data to Active Session format
     const initialData: ExerciseItem[] = workout.exercises.map((ex) => ({
-      id: crypto.randomUUID(), // New ID for new session
+      id: crypto.randomUUID(),
       name: ex.name,
       sets: ex.sets.map((set) => ({
-        id: crypto.randomUUID(), // New ID
+        id: crypto.randomUUID(),
         weight: set.weight,
         reps: set.reps,
-        isCompleted: false, // Reset completion
+        isCompleted: false,
       })),
     }));
 
     setActiveSessionInitialData(initialData);
-    setSelectedWorkout(null); // Close detail drawer
-    setIsWorkoutActive(true); // Open active session
+    setActiveSessionInitialName(workout.name); // Set name from history
+    setSelectedWorkout(null);
+    setIsWorkoutActive(true);
   };
 
   // Duration formatting helper
@@ -130,8 +121,6 @@ export default function WorkoutPage() {
     const isToday = date.toDateString() === now.toDateString();
     
     if (isToday) return "Today";
-    
-    // Check if yesterday
     const yesterday = new Date(now);
     yesterday.setDate(yesterday.getDate() - 1);
     if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
@@ -146,7 +135,8 @@ export default function WorkoutPage() {
         <h1 className="mb-4 text-2xl font-bold tracking-tight">Workout</h1>
         <button
           onClick={() => {
-            setActiveSessionInitialData(undefined); // Reset for blank session
+            setActiveSessionInitialData(undefined);
+            setActiveSessionInitialName(undefined); // Let drawer handle default date name
             setIsWorkoutActive(true);
           }}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3.5 font-bold text-white shadow-lg shadow-blue-500/20 transition-transform hover:scale-[1.02] active:scale-[0.98]"
@@ -161,7 +151,6 @@ export default function WorkoutPage() {
         <h2 className="mb-3 text-sm font-medium text-zinc-500 uppercase tracking-wider">Recent History</h2>
         
         {isLoading ? (
-          // Skeleton UI
           <div className="grid grid-cols-2 gap-3">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-sm h-32 animate-pulse dark:bg-zinc-900">
@@ -201,6 +190,7 @@ export default function WorkoutPage() {
         isOpen={isWorkoutActive}
         onClose={() => setIsWorkoutActive(false)}
         initialData={activeSessionInitialData}
+        initialWorkoutName={activeSessionInitialName}
       />
 
       {/* Workout Detail Drawer */}

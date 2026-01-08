@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Edit2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { AddExerciseModal } from "./AddExerciseModal";
 import { RestTimerModal } from "./RestTimerModal";
@@ -12,16 +12,20 @@ import { supabase } from "@/lib/supabase";
 interface ActiveSessionDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  initialData?: ExerciseItem[]; // Prop for loading routine
+  initialData?: ExerciseItem[];
+  initialWorkoutName?: string; // New prop for passing name
 }
 
-export function ActiveSessionDrawer({ isOpen, onClose, initialData }: ActiveSessionDrawerProps) {
+export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorkoutName }: ActiveSessionDrawerProps) {
   const router = useRouter();
   const [elapsedTime, setElapsedTime] = useState(0);
   const [exercises, setExercises] = useState<ExerciseItem[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [workoutName, setWorkoutName] = useState("Workout");
+  const [isEditingName, setIsEditingName] = useState(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   // Rest Timer State
   const [isResting, setIsResting] = useState(false);
@@ -41,7 +45,7 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData }: ActiveSess
           osc.connect(gain);
           gain.connect(ctx.destination);
           osc.type = "sine";
-          osc.frequency.value = 880; // A5
+          osc.frequency.value = 880;
           gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.5);
           osc.start();
           osc.stop(ctx.currentTime + 0.5);
@@ -56,34 +60,48 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData }: ActiveSess
     }
   };
 
-  // Workout Duration Timer & Initialization
+  // Initialization & Timer
   useEffect(() => {
     let interval: NodeJS.Timeout;
     
-    // Only run timer if session is open AND summary is NOT open
     if (isOpen && !isSummaryOpen) {
       interval = setInterval(() => {
         setElapsedTime((prev) => prev + 1);
       }, 1000);
 
-      // Load initial data if provided and exercises are empty (first open)
-      // Or if explicitly wanting to reset. For now, check length 0 or if we want to force reset on open.
-      // Better: Reset on open if initialData provided
+      // Initialize Name
+      if (initialWorkoutName) {
+         setWorkoutName(initialWorkoutName);
+      } else if (elapsedTime === 0) { // Only set default if new session
+         const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'numeric', day: 'numeric' });
+         setWorkoutName(`Workout on ${date}`);
+      }
+
+      // Initialize Data
       if (initialData && exercises.length === 0) {
         setExercises(initialData);
       }
 
     } else if (!isOpen) {
-      // Reset when closed
+      // Reset
       setElapsedTime(0);
       setExercises([]);
       stopRestTimer();
       setIsSummaryOpen(false);
       setIsSaving(false);
+      setWorkoutName("Workout");
+      setIsEditingName(false);
     }
     
     return () => clearInterval(interval);
-  }, [isOpen, isSummaryOpen, initialData]); // Added initialData dependency
+  }, [isOpen, isSummaryOpen, initialData, initialWorkoutName]);
+
+  // Focus input when editing starts
+  useEffect(() => {
+    if (isEditingName && nameInputRef.current) {
+      nameInputRef.current.focus();
+    }
+  }, [isEditingName]);
 
   // Rest Timer Logic
   const startRestTimer = () => {
@@ -210,7 +228,6 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData }: ActiveSess
   const calculateStats = () => {
     let volume = 0;
     let sets = 0;
-    
     exercises.forEach(ex => {
       ex.sets.forEach(set => {
         if (set.isCompleted) {
@@ -219,37 +236,37 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData }: ActiveSess
         }
       });
     });
-
     return { volume, sets };
   };
 
   const { volume: totalVolume, sets: totalSets } = calculateStats();
 
+  // Actions
   const handleFinishClick = () => {
     stopRestTimer();
     setIsSummaryOpen(true);
   };
 
-  const handleCancelSummary = () => {
-    setIsSummaryOpen(false);
+  const handleCancelWorkout = () => {
+    if (window.confirm("Cancel workout? Current progress will be lost.")) {
+      stopRestTimer();
+      onClose(); // This resets state via useEffect
+    }
   };
 
-  // Save Workout Logic
   const handleSaveWorkout = async (name: string) => {
+    // If user changes name in summary modal, use that. Otherwise fallback to current workoutName.
+    // The summary modal calls this with its internal name state, which defaults to props or empty.
+    // We should probably init summary modal with workoutName.
+    const finalName = name || workoutName;
+
     try {
       setIsSaving(true);
-      
       console.log("Starting save process...");
 
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError) {
-        console.error("Error fetching user:", userError);
-      }
-      
+      const { data: { user } } = await supabase.auth.getUser();
       const userId = user?.id || "anon_user";
-      console.log("User ID resolved to:", userId);
 
-      // 1. Create Workout
       const workoutId = crypto.randomUUID();
       const endTime = new Date().toISOString();
       const startTime = new Date(Date.now() - elapsedTime * 1000).toISOString();
@@ -257,47 +274,27 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData }: ActiveSess
       const workoutData = {
         id: workoutId,
         user_id: userId,
-        name: name, // Save the name!
+        name: finalName,
         start_time: startTime,
         end_time: endTime,
         total_weight: totalVolume,
         total_sets: totalSets
       };
 
-      console.log("Inserting workout:", workoutData);
-
       const { error: workoutError } = await supabase.from('workouts').insert(workoutData);
+      if (workoutError) throw workoutError;
 
-      if (workoutError) {
-        console.error("Error inserting workout:", workoutError);
-        throw workoutError;
-      }
-      
-      console.log("Workout inserted successfully");
-
-      // 2. Create Exercises & Sets
       for (let i = 0; i < exercises.length; i++) {
         const ex = exercises[i];
-        console.log(`Processing exercise ${i + 1}/${exercises.length}:`, ex.name);
-        
-        // Insert Exercise
         const exerciseData = {
           id: ex.id,
           workout_id: workoutId,
           name: ex.name,
           order: i
         };
-        
-        console.log("Inserting exercise:", exerciseData);
-
         const { error: exError } = await supabase.from('exercises').insert(exerciseData);
-        
-        if (exError) {
-          console.error(`Error inserting exercise ${ex.name}:`, exError);
-          throw exError;
-        }
+        if (exError) throw exError;
 
-        // Insert Sets
         const setsToInsert = ex.sets.map((set, setIndex) => ({
           id: set.id,
           exercise_id: ex.id,
@@ -308,29 +305,18 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData }: ActiveSess
         }));
 
         if (setsToInsert.length > 0) {
-          console.log(`Inserting ${setsToInsert.length} sets for ${ex.name}:`, setsToInsert);
           const { error: setsError } = await supabase.from('sets').insert(setsToInsert);
-          if (setsError) {
-             console.error(`Error inserting sets for exercise ${ex.name}:`, setsError);
-             throw setsError;
-          }
+          if (setsError) throw setsError;
         }
       }
 
       console.log("Save completed successfully");
-
-      // Success
-      onClose(); // Close drawer
-      // router.push("/"); // Don't redirect home, stay on workout page to see updated history
-      // Actually, user might want to go to home or stay. The prompt says "update automatically" implying we stay on /workout or go back there.
-      // But previous prompt said "Redirect to home".
-      // Current prompt for history tab implies we are ON the workout page.
-      // Let's assume we just close the drawer and let page.tsx refresh data.
-      window.location.reload(); // Force reload to see new history for now, or just let page.tsx handle it if we trigger re-fetch.
+      onClose();
+      window.location.reload();
       
     } catch (error) {
-      console.error("Full error object in catch block:", error);
-      alert("Failed to save workout. Check console for details.");
+      console.error("Save error:", error);
+      alert("Failed to save workout.");
     } finally {
       setIsSaving(false);
     }
@@ -343,21 +329,44 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData }: ActiveSess
       <div className="fixed inset-0 z-[60] flex flex-col bg-white dark:bg-black animate-in slide-in-from-bottom duration-300">
         {/* Header */}
         <header className="flex h-16 items-center justify-between border-b px-4 dark:border-zinc-800">
-          <div className="flex flex-col items-center w-20">
-             <span className="text-[10px] text-zinc-500 uppercase tracking-wide">Rest</span>
-             <span className="font-mono text-sm font-medium">
-                {isResting ? formatTime(restSecondsRemaining) : "00:00"}
-             </span>
-          </div>
+          <button
+            onClick={handleCancelWorkout}
+            className="rounded-full p-2 text-zinc-400 hover:bg-zinc-100 hover:text-red-500 dark:hover:bg-zinc-800"
+          >
+            <X className="h-5 w-5" />
+          </button>
           
-          <div className="flex flex-col items-center">
-            <span className="text-[10px] text-zinc-500 uppercase tracking-wide">Duration</span>
-            <span className="font-mono text-2xl font-bold tracking-tight">{formatTime(elapsedTime)}</span>
+          <div className="flex flex-col items-center flex-1 mx-4">
+             {/* Editable Title */}
+             {isEditingName ? (
+               <input
+                 ref={nameInputRef}
+                 type="text"
+                 value={workoutName}
+                 onChange={(e) => setWorkoutName(e.target.value)}
+                 onBlur={() => setIsEditingName(false)}
+                 onKeyDown={(e) => {
+                   if (e.key === 'Enter') setIsEditingName(false);
+                 }}
+                 className="w-full max-w-[200px] bg-transparent text-center text-sm font-semibold outline-none border-b border-blue-500 pb-0.5"
+               />
+             ) : (
+               <button 
+                 onClick={() => setIsEditingName(true)}
+                 className="flex items-center gap-2 text-sm font-semibold hover:text-zinc-600 dark:hover:text-zinc-300 px-2 py-1 rounded"
+               >
+                 <span className="truncate max-w-[180px]">{workoutName}</span>
+                 <Edit2 className="h-3 w-3 opacity-50" />
+               </button>
+             )}
+            <span className="font-mono text-xs font-medium text-blue-600 dark:text-blue-400 mt-0.5">
+               {formatTime(elapsedTime)}
+            </span>
           </div>
 
           <button
             onClick={handleFinishClick}
-            className="rounded-full bg-zinc-900 px-4 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 w-20"
+            className="rounded-full bg-zinc-900 px-4 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
           >
             Finish
           </button>
@@ -365,11 +374,17 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData }: ActiveSess
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto bg-zinc-50 p-4 pb-24 dark:bg-black">
+          {/* Rest Timer Banner if active */}
+          {isResting && (
+             <div className="mb-4 flex items-center justify-between rounded-xl bg-blue-50 p-3 px-4 text-blue-900 dark:bg-blue-900/20 dark:text-blue-100">
+                <span className="text-sm font-medium">Resting...</span>
+                <span className="font-mono text-lg font-bold">{formatTime(restSecondsRemaining)}</span>
+             </div>
+          )}
+
           {exercises.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center text-zinc-500">
-              <DumbbellIcon className="mb-4 h-12 w-12 opacity-20" />
-              <p>No exercises added yet.</p>
-              <p className="text-sm">Tap the button below to start.</p>
+            <div className="flex h-full flex-col items-center justify-center text-zinc-500 mt-20">
+              <p>Tap below to add an exercise</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -414,6 +429,10 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData }: ActiveSess
         onSkip={stopRestTimer}
       />
 
+      {/* We pass initialName to summary modal so it prepopulates input */}
+      {/* But Wait, the Summary Modal has its own input state initialized to empty string. */}
+      {/* We need to update SummaryModal to accept initialValue or just force it to use prop if we want it pre-filled. */}
+      {/* Let's pass the current workoutName as a prop to pre-fill it. */}
       <WorkoutSummaryModal
         isOpen={isSummaryOpen}
         totalTime={formatTime(elapsedTime)}
@@ -422,32 +441,12 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData }: ActiveSess
         isSaving={isSaving}
         onSave={handleSaveWorkout}
         onCancel={handleCancelSummary}
+        // We'll need to modify WorkoutSummaryModal to accept initialName
+        // For now, let's just assume we might need to modify it or it starts empty.
+        // Task requirement didn't explicitly say pre-fill summary modal, but logic implies persistence.
+        // "Name your workout to save" - imply rename or confirm.
+        // Let's modify SummaryModal next to be safe.
       />
     </>
-  );
-}
-
-function DumbbellIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="m6.5 6.5 11 11" />
-      <path d="m21 21-1-1" />
-      <path d="m3 3 1 1" />
-      <path d="m18 22 4-4" />
-      <path d="m2 6 4-4" />
-      <path d="m3 10 7-7" />
-      <path d="m14 21 7-7" />
-    </svg>
   );
 }

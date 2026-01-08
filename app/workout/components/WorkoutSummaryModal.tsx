@@ -2,7 +2,7 @@
 
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface WorkoutSummaryModalProps {
   isOpen: boolean;
@@ -10,6 +10,7 @@ interface WorkoutSummaryModalProps {
   totalVolume: number;
   totalSets: number;
   isSaving: boolean;
+  initialName?: string; // Add this prop
   onSave: (name: string) => void;
   onCancel: () => void;
 }
@@ -20,10 +21,18 @@ export function WorkoutSummaryModal({
   totalVolume,
   totalSets,
   isSaving,
+  initialName = "",
   onSave,
   onCancel,
 }: WorkoutSummaryModalProps) {
-  const [name, setName] = useState("");
+  const [name, setName] = useState(initialName);
+
+  // Sync with prop when opening
+  useEffect(() => {
+    if (isOpen) {
+      setName(initialName);
+    }
+  }, [isOpen, initialName]);
 
   const handleSaveClick = () => {
     if (name.trim()) {
@@ -60,7 +69,7 @@ export function WorkoutSummaryModal({
                 Workout Complete!
               </h2>
               <p className="mb-6 text-sm text-zinc-500 dark:text-zinc-400">
-                Name your workout to save it to your history.
+                Confirm name to save your workout.
               </p>
 
               {/* Name Input */}
