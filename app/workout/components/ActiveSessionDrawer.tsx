@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { AddExerciseModal } from "./AddExerciseModal";
 import { RestTimerModal } from "./RestTimerModal";
 import { WorkoutSummaryModal } from "./WorkoutSummaryModal";
+import { DeleteConfirmModal } from "./DeleteConfirmModal";
 import { ExerciseCard, ExerciseItem, ExerciseSet } from "./ExerciseCard";
 import { supabase } from "@/lib/supabase";
 
@@ -23,6 +24,7 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [workoutName, setWorkoutName] = useState("Workout");
   const [isEditingName, setIsEditingName] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -53,7 +55,7 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
       } catch (e) {
         console.error("Audio playback failed", e);
       }
-      
+
       if (navigator.vibrate) {
         navigator.vibrate([200, 100, 200]);
       }
@@ -63,7 +65,7 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
   // Initialization & Timer
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    
+
     if (isOpen && !isSummaryOpen) {
       interval = setInterval(() => {
         setElapsedTime((prev) => prev + 1);
@@ -71,10 +73,10 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
 
       // Initialize Name
       if (initialWorkoutName) {
-         setWorkoutName(initialWorkoutName);
+        setWorkoutName(initialWorkoutName);
       } else if (elapsedTime === 0) { // Only set default if new session
-         const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'numeric', day: 'numeric' });
-         setWorkoutName(`Workout on ${date}`);
+        const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'numeric', day: 'numeric' });
+        setWorkoutName(`Workout on ${date}`);
       }
 
       // Initialize Data
@@ -92,7 +94,7 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
       setWorkoutName("Workout");
       setIsEditingName(false);
     }
-    
+
     return () => clearInterval(interval);
   }, [isOpen, isSummaryOpen, initialData, initialWorkoutName]);
 
@@ -246,16 +248,23 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
     stopRestTimer();
     setIsSummaryOpen(true);
   };
-  
+
   const handleCancelSummary = () => {
     setIsSummaryOpen(false);
   };
 
   const handleCancelWorkout = () => {
-    if (window.confirm("Cancel workout? Current progress will be lost.")) {
-      stopRestTimer();
-      onClose(); // This resets state via useEffect
-    }
+    setIsCancelModalOpen(true);
+  };
+
+  const handleConfirmCancel = () => {
+    stopRestTimer();
+    setIsCancelModalOpen(false);
+    onClose(); // This resets state via useEffect
+  };
+
+  const handleCancelCancel = () => {
+    setIsCancelModalOpen(false);
   };
 
   const handleSaveWorkout = async (name: string) => {
@@ -274,7 +283,7 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
       const workoutId = crypto.randomUUID();
       const endTime = new Date().toISOString();
       const startTime = new Date(Date.now() - elapsedTime * 1000).toISOString();
-      
+
       const workoutData = {
         id: workoutId,
         user_id: userId,
@@ -317,7 +326,7 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
       console.log("Save completed successfully");
       onClose();
       window.location.reload();
-      
+
     } catch (error) {
       console.error("Save error:", error);
       alert("Failed to save workout.");
@@ -339,32 +348,32 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
           >
             <X className="h-5 w-5" />
           </button>
-          
+
           <div className="flex flex-col items-center flex-1 mx-4">
-             {/* Editable Title */}
-             {isEditingName ? (
-               <input
-                 ref={nameInputRef}
-                 type="text"
-                 value={workoutName}
-                 onChange={(e) => setWorkoutName(e.target.value)}
-                 onBlur={() => setIsEditingName(false)}
-                 onKeyDown={(e) => {
-                   if (e.key === 'Enter') setIsEditingName(false);
-                 }}
-                 className="w-full max-w-[200px] bg-transparent text-center text-sm font-semibold outline-none border-b border-blue-500 pb-0.5"
-               />
-             ) : (
-               <button 
-                 onClick={() => setIsEditingName(true)}
-                 className="flex items-center gap-2 text-sm font-semibold hover:text-zinc-600 dark:hover:text-zinc-300 px-2 py-1 rounded"
-               >
-                 <span className="truncate max-w-[180px]">{workoutName}</span>
-                 <Edit2 className="h-3 w-3 opacity-50" />
-               </button>
-             )}
+            {/* Editable Title */}
+            {isEditingName ? (
+              <input
+                ref={nameInputRef}
+                type="text"
+                value={workoutName}
+                onChange={(e) => setWorkoutName(e.target.value)}
+                onBlur={() => setIsEditingName(false)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') setIsEditingName(false);
+                }}
+                className="w-full max-w-[200px] bg-transparent text-center text-sm font-semibold outline-none border-b border-blue-500 pb-0.5"
+              />
+            ) : (
+              <button
+                onClick={() => setIsEditingName(true)}
+                className="flex items-center gap-2 text-sm font-semibold hover:text-zinc-600 dark:hover:text-zinc-300 px-2 py-1 rounded"
+              >
+                <span className="truncate max-w-[180px]">{workoutName}</span>
+                <Edit2 className="h-3 w-3 opacity-50" />
+              </button>
+            )}
             <span className="font-mono text-xs font-medium text-blue-600 dark:text-blue-400 mt-0.5">
-               {formatTime(elapsedTime)}
+              {formatTime(elapsedTime)}
             </span>
           </div>
 
@@ -380,10 +389,10 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
         <div className="flex-1 overflow-y-auto bg-zinc-50 p-4 pb-24 dark:bg-black">
           {/* Rest Timer Banner if active */}
           {isResting && (
-             <div className="mb-4 flex items-center justify-between rounded-xl bg-blue-50 p-3 px-4 text-blue-900 dark:bg-blue-900/20 dark:text-blue-100">
-                <span className="text-sm font-medium">Resting...</span>
-                <span className="font-mono text-lg font-bold">{formatTime(restSecondsRemaining)}</span>
-             </div>
+            <div className="mb-4 flex items-center justify-between rounded-xl bg-blue-50 p-3 px-4 text-blue-900 dark:bg-blue-900/20 dark:text-blue-100">
+              <span className="text-sm font-medium">Resting...</span>
+              <span className="font-mono text-lg font-bold">{formatTime(restSecondsRemaining)}</span>
+            </div>
           )}
 
           {exercises.length === 0 ? (
@@ -442,6 +451,16 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
         initialName={workoutName}
         onSave={handleSaveWorkout}
         onCancel={handleCancelSummary}
+      />
+
+      <DeleteConfirmModal
+        isOpen={isCancelModalOpen}
+        title="Cancel Workout?"
+        message="Current progress will be lost."
+        confirmText="Cancel Workout"
+        cancelText="Continue"
+        onConfirm={handleConfirmCancel}
+        onCancel={handleCancelCancel}
       />
     </>
   );
