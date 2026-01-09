@@ -244,7 +244,8 @@ export default function DataPage() {
                     padding: '8px 12px',
                   }}
                   labelStyle={{ color: '#18181b', fontWeight: 600 }}
-                  formatter={(value: number) => {
+                  formatter={(value: number | undefined) => {
+                    if (value === undefined) return '';
                     if (selectedMetric === 'totalVolume') {
                       return `${value.toLocaleString()} kg`;
                     }
