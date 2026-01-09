@@ -396,7 +396,7 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
           )}
 
           {exercises.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center text-zinc-500 mt-20">
+            <div className="flex  flex-col items-center justify-center text-zinc-500 ">
               <p>Tap below to add an exercise</p>
             </div>
           ) : (
