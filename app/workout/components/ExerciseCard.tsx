@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Plus, Trash2, X } from "lucide-react";
-import { AnimatePresence, motion, useMotionValue, useTransform, animate, PanInfo } from "framer-motion";
+import { motion, useMotionValue, useTransform, animate, PanInfo } from "framer-motion";
 import { useState, useRef } from "react";
 import { DeleteConfirmModal } from "./DeleteConfirmModal";
 
@@ -77,11 +77,7 @@ function ExerciseSetRow({ set, index, exerciseId, onUpdateSet, onRemoveSet }: Ex
   const deletePointerEvents = useTransform(x, (latest) => latest < -25 ? "auto" : "none");
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, height: 0 }}
-      animate={{ opacity: 1, height: "auto" }}
-      exit={{ opacity: 0, height: 0 }}
+    <div
       className={`relative overflow-hidden ${set.isCompleted
         ? "bg-green-50/50 dark:bg-green-900/10"
         : "even:bg-zinc-50/50 dark:even:bg-zinc-900/50"
@@ -180,7 +176,7 @@ function ExerciseSetRow({ set, index, exerciseId, onUpdateSet, onRemoveSet }: Ex
           animate(x, 0, { type: "spring", stiffness: 400, damping: 30 });
         }}
       />
-    </motion.div>
+    </div>
   );
 }
 
@@ -219,18 +215,16 @@ export function ExerciseCard({
 
       {/* Sets */}
       <div className="flex flex-col overflow-hidden">
-        <AnimatePresence initial={false}>
-          {exercise.sets.map((set, index) => (
-            <ExerciseSetRow
-              key={set.id}
-              set={set}
-              index={index}
-              exerciseId={exercise.id}
-              onUpdateSet={onUpdateSet}
-              onRemoveSet={onRemoveSet}
-            />
-          ))}
-        </AnimatePresence>
+        {exercise.sets.map((set, index) => (
+          <ExerciseSetRow
+            key={set.id}
+            set={set}
+            index={index}
+            exerciseId={exercise.id}
+            onUpdateSet={onUpdateSet}
+            onRemoveSet={onRemoveSet}
+          />
+        ))}
       </div>
 
       {/* Add Set Button */}
