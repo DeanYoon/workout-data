@@ -32,6 +32,7 @@ export default function WorkoutPage() {
             sets (*)
           )
         `)
+        .eq("is_disabled", false)
         .order("start_time", { ascending: false });
 
       if (error) throw error;
@@ -69,8 +70,24 @@ export default function WorkoutPage() {
     fetchWorkouts();
   }, []);
 
-  const handleDelete = (id: string) => {
-    setHistoryWorkouts((prev) => prev.filter((w) => w.id !== id));
+  const handleDelete = async (id: string) => {
+    try {
+      // Update state immediately for better UX
+      setHistoryWorkouts((prev) => prev.filter((w) => w.id !== id));
+
+      // Update database
+      const { error } = await supabase
+        .from("workouts")
+        .update({ is_disabled: true })
+        .eq("id", id);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error("Error deleting workout:", error);
+      alert("Failed to delete workout");
+      // Re-fetch on error to restore state
+      fetchWorkouts();
+    }
   };
 
   const handleStartRoutine = (workout: WorkoutWithDetails) => {

@@ -6,6 +6,7 @@ export interface Workout {
   total_weight: number;
   total_sets: number;
   user_id: string;
+  is_disabled?: boolean; // Soft delete flag
 }
 
 export interface Exercise {
