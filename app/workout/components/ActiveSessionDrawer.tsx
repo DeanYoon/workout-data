@@ -34,6 +34,8 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
   const [restSecondsRemaining, setRestSecondsRemaining] = useState(60);
   const [totalRestSeconds, setTotalRestSeconds] = useState(60);
   const restTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const restTimerStartTimeRef = useRef<number | null>(null);
+  const restTimerInitialSecondsRef = useRef<number>(60);
 
   // Sound Effect
   const playBeep = () => {
@@ -105,23 +107,54 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
     }
   }, [isEditingName]);
 
+  // Handle visibility change to sync rest timer
+  useEffect(() => {
+    if (!isResting) return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && restTimerStartTimeRef.current !== null) {
+        const now = Date.now();
+        const elapsed = Math.floor((now - restTimerStartTimeRef.current) / 1000);
+        const initialSeconds = restTimerInitialSecondsRef.current;
+        const newRemaining = Math.max(0, initialSeconds - elapsed);
+
+        if (newRemaining <= 0) {
+          stopRestTimer();
+          playBeep();
+        } else {
+          setRestSecondsRemaining(newRemaining);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isResting]);
+
   // Rest Timer Logic
   const startRestTimer = () => {
     if (restTimerRef.current) clearInterval(restTimerRef.current);
+    const initialSeconds = 60;
     setIsResting(true);
-    setRestSecondsRemaining(60);
-    setTotalRestSeconds(60);
+    setRestSecondsRemaining(initialSeconds);
+    setTotalRestSeconds(initialSeconds);
+    restTimerStartTimeRef.current = Date.now();
+    restTimerInitialSecondsRef.current = initialSeconds;
 
     restTimerRef.current = setInterval(() => {
-      setRestSecondsRemaining((prev) => {
-        if (prev <= 1) {
-          stopRestTimer();
-          playBeep();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+      if (restTimerStartTimeRef.current === null) return;
+
+      const now = Date.now();
+      const elapsed = Math.floor((now - restTimerStartTimeRef.current) / 1000);
+      const newRemaining = Math.max(0, restTimerInitialSecondsRef.current - elapsed);
+
+      if (newRemaining <= 0) {
+        stopRestTimer();
+        playBeep();
+      } else {
+        setRestSecondsRemaining(newRemaining);
+      }
+    }, 100);
   };
 
   const stopRestTimer = () => {
@@ -129,14 +162,23 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
       clearInterval(restTimerRef.current);
       restTimerRef.current = null;
     }
+    restTimerStartTimeRef.current = null;
     setIsResting(false);
   };
 
   const addRestTime = (seconds: number) => {
-    setRestSecondsRemaining((prev) => {
-      const newVal = prev + seconds;
-      return newVal < 0 ? 0 : newVal;
-    });
+    if (restTimerStartTimeRef.current === null) return;
+
+    const now = Date.now();
+    const elapsed = Math.floor((now - restTimerStartTimeRef.current) / 1000);
+    const currentRemaining = Math.max(0, restTimerInitialSecondsRef.current - elapsed);
+    const newRemaining = Math.max(0, currentRemaining + seconds);
+
+    // Update initial seconds and start time to reflect the change
+    restTimerInitialSecondsRef.current = newRemaining;
+    restTimerStartTimeRef.current = now;
+
+    setRestSecondsRemaining(newRemaining);
     if (seconds > 0) {
       setTotalRestSeconds((prev) => prev + seconds);
     }
