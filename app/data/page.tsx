@@ -2,11 +2,13 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useWorkoutAnalyticsStore, DateAnalytics } from '@/app/stores/useWorkoutAnalyticsStore';
+import { useExerciseHistoryStore } from '@/app/stores/useExerciseHistoryStore';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Dot } from 'recharts';
 import { format, parseISO } from 'date-fns';
 import { ChevronDown } from 'lucide-react';
 
 type MetricType = 'maxWeight' | 'totalVolume' | 'totalSets';
+type ViewType = 'chart' | 'history';
 
 const METRIC_LABELS: Record<MetricType, string> = {
   maxWeight: 'Max Weight',
@@ -16,13 +18,25 @@ const METRIC_LABELS: Record<MetricType, string> = {
 
 export default function DataPage() {
   const { data, isLoading, error, fetchAnalytics } = useWorkoutAnalyticsStore();
+  const { exerciseHistory, isLoading: isHistoryLoading, fetchExerciseHistory, clearHistory } = useExerciseHistoryStore();
 
   useEffect(() => {
     fetchAnalytics();
   }, [fetchAnalytics]);
+
   const [selectedExercise, setSelectedExercise] = useState<string>('');
   const [selectedMetric, setSelectedMetric] = useState<MetricType>('maxWeight');
+  const [viewType, setViewType] = useState<ViewType>('chart');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  // Fetch exercise history when exercise is selected and view is history
+  useEffect(() => {
+    if (selectedExercise && viewType === 'history') {
+      fetchExerciseHistory(selectedExercise);
+    } else {
+      clearHistory();
+    }
+  }, [selectedExercise, viewType, fetchExerciseHistory, clearHistory]);
 
   // Get available exercises and find the most recent one
   const availableExercises = useMemo(() => {
@@ -83,7 +97,7 @@ export default function DataPage() {
   if (isLoading) {
     return (
       <div className="relative min-h-screen bg-zinc-50 pb-24 dark:bg-black">
-        <div className="sticky top-0 z-10 border-b bg-white/80 p-4 backdrop-blur-md dark:border-zinc-800 dark:bg-black/80">
+        <div className="sticky top-0 z-10 border-b bg-white/80 p-4 backdrop-blur-md dark:border-zinc-800 dark:bg-black/80 z-50">
           <h1 className="mb-4 text-2xl font-bold tracking-tight">Data</h1>
         </div>
         <div className="p-4 space-y-4">
@@ -145,7 +159,7 @@ export default function DataPage() {
 
   return (
     <div className="relative min-h-screen bg-zinc-50 pb-24 dark:bg-black">
-      <div className="sticky top-0 z-10 border-b bg-white/80 p-4 backdrop-blur-md dark:border-zinc-800 dark:bg-black/80">
+      <div className="sticky top-0 z-10 border-b bg-white/80 p-4 backdrop-blur-md dark:border-zinc-800 dark:bg-black/80 z-50">
         <h1 className="mb-4 text-2xl font-bold tracking-tight">Data</h1>
       </div>
 
@@ -194,83 +208,220 @@ export default function DataPage() {
           </div>
         </div>
 
-        {/* Metric Selector */}
+        {/* View Type Tabs */}
         <div>
           <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-            Metric
+            View
           </label>
           <div className="flex gap-2">
-            {(Object.keys(METRIC_LABELS) as MetricType[]).map((metric) => (
-              <button
-                key={metric}
-                onClick={() => setSelectedMetric(metric)}
-                className={`flex-1 rounded-xl px-4 py-3 font-medium transition-colors ${selectedMetric === metric
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                  : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'
-                  }`}
-              >
-                {METRIC_LABELS[metric]}
-              </button>
-            ))}
+            <button
+              onClick={() => setViewType('chart')}
+              className={`flex-1 rounded-xl px-4 py-3 font-medium transition-colors ${viewType === 'chart'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                }`}
+            >
+              차트
+            </button>
+            <button
+              onClick={() => setViewType('history')}
+              className={`flex-1 rounded-xl px-4 py-3 font-medium transition-colors ${viewType === 'history'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                }`}
+            >
+              이력
+            </button>
           </div>
         </div>
 
-        {/* Chart */}
-        <div className="rounded-2xl bg-white dark:bg-zinc-900 p-4 shadow-sm">
-          {chartData.length === 0 ? (
-            <div className="flex items-center justify-center py-12">
-              <p className="text-zinc-500 dark:text-zinc-400">아직 기록된 운동 데이터가 없습니다.</p>
+        {/* Metric Selector - Only show in chart view */}
+        {viewType === 'chart' && (
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+              Metric
+            </label>
+            <div className="flex gap-2">
+              {(Object.keys(METRIC_LABELS) as MetricType[]).map((metric) => (
+                <button
+                  key={metric}
+                  onClick={() => setSelectedMetric(metric)}
+                  className={`flex-1 rounded-xl px-4 py-3 font-medium transition-colors ${selectedMetric === metric
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                    : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                    }`}
+                >
+                  {METRIC_LABELS[metric]}
+                </button>
+              ))}
             </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" className="dark:stroke-zinc-800" />
-                <XAxis
-                  dataKey="formattedDate"
-                  stroke="#71717a"
-                  className="text-xs"
-                  tick={{ fill: '#71717a', fontSize: 12 }}
-                />
-                <YAxis
-                  domain={['auto', 'auto']}
-                  stroke="#71717a"
-                  className="text-xs"
-                  tick={{ fill: '#71717a', fontSize: 12 }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'white',
-                    border: '1px solid #e4e4e7',
-                    borderRadius: '8px',
-                    padding: '8px 12px',
-                  }}
-                  labelStyle={{ color: '#18181b', fontWeight: 600 }}
-                  formatter={(value: number | undefined) => {
-                    if (value === undefined) return '';
-                    if (selectedMetric === 'totalVolume') {
-                      return `${value.toLocaleString()} kg`;
-                    }
-                    if (selectedMetric === 'maxWeight') {
-                      return `${value} kg`;
-                    }
-                    return value;
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="value"
-                  stroke="#2563eb"
-                  strokeWidth={2}
-                  dot={{ fill: '#2563eb', r: 4 }}
-                  activeDot={{ r: 6 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Summary Stats */}
-        {selectedExercise && data[selectedExercise] && data[selectedExercise].length > 0 && (
+        {/* Chart or History Table */}
+        {viewType === 'chart' ? (
+          <div className="rounded-2xl bg-white dark:bg-zinc-900 p-4 shadow-sm">
+            {chartData.length === 0 ? (
+              <div className="flex items-center justify-center py-12">
+                <p className="text-zinc-500 dark:text-zinc-400">아직 기록된 운동 데이터가 없습니다.</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" className="dark:stroke-zinc-800" />
+                  <XAxis
+                    dataKey="formattedDate"
+                    stroke="#71717a"
+                    className="text-xs"
+                    tick={{ fill: '#71717a', fontSize: 12 }}
+                  />
+                  <YAxis
+                    domain={['auto', 'auto']}
+                    stroke="#71717a"
+                    className="text-xs"
+                    tick={{ fill: '#71717a', fontSize: 12 }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      border: '1px solid #e4e4e7',
+                      borderRadius: '8px',
+                      padding: '8px 12px',
+                    }}
+                    labelStyle={{ color: '#18181b', fontWeight: 600 }}
+                    formatter={(value: number | undefined) => {
+                      if (value === undefined) return '';
+                      if (selectedMetric === 'totalVolume') {
+                        return `${value.toLocaleString()} kg`;
+                      }
+                      if (selectedMetric === 'maxWeight') {
+                        return `${value} kg`;
+                      }
+                      return value;
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="value"
+                    stroke="#2563eb"
+                    strokeWidth={2}
+                    dot={{ fill: '#2563eb', r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        ) : (
+          <div className="rounded-2xl bg-white dark:bg-zinc-900 p-4 shadow-sm">
+            {isHistoryLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <p className="text-zinc-500 dark:text-zinc-400">이력을 불러오는 중...</p>
+              </div>
+            ) : exerciseHistory.length === 0 ? (
+              <div className="flex items-center justify-center py-12">
+                <p className="text-zinc-500 dark:text-zinc-400">아직 기록된 운동 이력이 없습니다.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto -mx-4 px-4">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="border-b-2 border-zinc-300 dark:border-zinc-700">
+                      <th className="text-left py-3 px-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100 sticky left-0 bg-white dark:bg-zinc-900 z-10">
+                        세트
+                      </th>
+                      {exerciseHistory.map((workout, index) => (
+                        <th
+                          key={workout.workoutId}
+                          className="text-center py-3 px-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100 min-w-[120px] bg-zinc-50 dark:bg-zinc-800/50"
+                        >
+                          <div className="font-bold">{index + 1}회 전</div>
+                          <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 font-normal">
+                            {format(parseISO(workout.workoutDate), 'MM/dd')}
+                          </div>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      // Find max number of sets across all workouts
+                      const maxSets = Math.max(...exerciseHistory.map(w => w.sets.length));
+                      const rows = [];
+
+                      // Add set rows
+                      for (let setIndex = 0; setIndex < maxSets; setIndex++) {
+                        rows.push(
+                          <tr
+                            key={setIndex}
+                            className="border-b border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors"
+                          >
+                            <td className="py-3 px-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300 sticky left-0 bg-white dark:bg-zinc-900 z-10 border-r border-zinc-200 dark:border-zinc-800">
+                              {setIndex + 1}세트
+                            </td>
+                            {exerciseHistory.map((workout) => {
+                              const set = workout.sets[setIndex];
+                              return (
+                                <td
+                                  key={workout.workoutId}
+                                  className="py-3 px-3 text-center text-sm"
+                                >
+                                  {set ? (
+                                    <div className="flex flex-col items-center gap-0.5">
+                                      <div className="font-bold text-zinc-900 dark:text-zinc-100">
+                                        {set.weight}kg
+                                      </div>
+                                      <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                                        × {set.reps}회
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <span className="text-zinc-400 dark:text-zinc-600">-</span>
+                                  )}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        );
+                      }
+
+                      // Add total volume row
+                      rows.push(
+                        <tr
+                          key="total"
+                          className="border-t-2 border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50"
+                        >
+                          <td className="py-3 px-3 text-sm font-bold text-zinc-900 dark:text-zinc-100 sticky left-0 bg-zinc-50 dark:bg-zinc-800/50 z-10 border-r border-zinc-200 dark:border-zinc-800">
+                            총 키로수
+                          </td>
+                          {exerciseHistory.map((workout) => {
+                            // Calculate total volume for this workout
+                            const totalVolume = workout.sets.reduce((sum, set) => {
+                              return sum + (set.weight * set.reps);
+                            }, 0);
+                            return (
+                              <td
+                                key={workout.workoutId}
+                                className="py-3 px-3 text-center text-sm font-bold text-zinc-900 dark:text-zinc-100"
+                              >
+                                {totalVolume.toLocaleString()}kg
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+
+                      return rows;
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Summary Stats - Only show in chart view */}
+        {viewType === 'chart' && selectedExercise && data[selectedExercise] && data[selectedExercise].length > 0 && (
           <div className="grid grid-cols-2 gap-3">
             {/* Personal Best Card */}
             <div className="rounded-2xl bg-white dark:bg-zinc-900 p-4 shadow-sm">

@@ -90,7 +90,7 @@ export default function WorkoutPage() {
   return (
     <div className="relative min-h-screen bg-zinc-50 pb-24 dark:bg-black">
       {/* Sticky Start Button Header */}
-      <div className="sticky top-0 z-10 border-b bg-white/80 p-4 backdrop-blur-md dark:border-zinc-800 dark:bg-black/80">
+      <div className="sticky top-0 z-10 border-b bg-white/80 p-4 backdrop-blur-md dark:border-zinc-800 dark:bg-black/80 z-50">
         <h1 className="mb-4 text-2xl font-bold tracking-tight">Workout</h1>
         <button
           onClick={() => {
