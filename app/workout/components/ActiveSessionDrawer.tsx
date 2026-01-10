@@ -367,7 +367,10 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
 
       console.log("Save completed successfully");
       onClose();
-      window.location.reload();
+      // Trigger home data refresh instead of full page reload
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('workoutSaved'));
+      }
 
     } catch (error) {
       console.error("Save error:", error);

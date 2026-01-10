@@ -1,10 +1,5 @@
-import { useState, useEffect } from 'react';
+import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
-
-export interface ExerciseAnalytics {
-  exerciseName: string;
-  data: DateAnalytics[];
-}
 
 export interface DateAnalytics {
   date: string; // YYYY-MM-DD format
@@ -25,26 +20,50 @@ interface AnalyticsRow {
   total_sets: number;
 }
 
-export function useWorkoutAnalytics() {
-  const [data, setData] = useState<WorkoutAnalyticsData>({});
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+interface WorkoutAnalyticsStore {
+  data: WorkoutAnalyticsData;
+  isLoading: boolean;
+  error: Error | null;
+  fetchAnalytics: () => Promise<void>;
+  refreshAnalytics: () => Promise<void>;
+}
 
-  useEffect(() => {
-    const fetchAnalytics = async () => {
+export const useWorkoutAnalyticsStore = create<WorkoutAnalyticsStore>((set, get) => {
+  // Initialize event listeners
+  if (typeof window !== 'undefined') {
+    const handleWorkoutChange = () => {
+      get().refreshAnalytics();
+    };
+
+    window.addEventListener('workoutSaved', handleWorkoutChange);
+    window.addEventListener('workoutDeleted', handleWorkoutChange);
+  }
+
+  return {
+    data: {},
+    isLoading: true,
+    error: null,
+
+    fetchAnalytics: async () => {
+      const { data } = get();
+      
+      // If we have cached data, use it
+      if (Object.keys(data).length > 0) {
+        set({ isLoading: false });
+        return;
+      }
+
       try {
-        setIsLoading(true);
-        setError(null);
+        set({ isLoading: true, error: null });
 
         // Call RPC function to get aggregated data from database
-        // This is much more efficient than fetching all sets
         const { data: analyticsData, error: fetchError } = await supabase
           .rpc('get_workout_analytics');
 
         if (fetchError) throw fetchError;
 
         if (!analyticsData || analyticsData.length === 0) {
-          setData({});
+          set({ data: {}, isLoading: false });
           return;
         }
 
@@ -75,17 +94,20 @@ export function useWorkoutAnalytics() {
           analyticsMap[exerciseName].sort((a, b) => a.date.localeCompare(b.date));
         });
 
-        setData(analyticsMap);
+        set({ data: analyticsMap, isLoading: false });
       } catch (err) {
         console.error('Error fetching workout analytics:', err);
-        setError(err instanceof Error ? err : new Error('Failed to fetch analytics'));
-      } finally {
-        setIsLoading(false);
+        set({ 
+          error: err instanceof Error ? err : new Error('Failed to fetch analytics'),
+          isLoading: false 
+        });
       }
-    };
+    },
 
-    fetchAnalytics();
-  }, []);
-
-  return { data, isLoading, error };
-}
+    refreshAnalytics: async () => {
+      // Clear cache and fetch fresh data
+      set({ data: {} });
+      await get().fetchAnalytics();
+    },
+  };
+});

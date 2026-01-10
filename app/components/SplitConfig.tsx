@@ -10,68 +10,24 @@ interface SplitConfigData {
   split_order: string[];
 }
 
-export function SplitConfig() {
-  const [splitConfig, setSplitConfig] = useState<SplitConfigData | null>(null);
-  const [workoutNames, setWorkoutNames] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+interface SplitConfigProps {
+  splitConfig: SplitConfigData | null;
+  workoutNames: string[];
+  onDataChange?: () => void;
+}
+
+export function SplitConfig({ splitConfig: initialSplitConfig, workoutNames: initialWorkoutNames, onDataChange }: SplitConfigProps) {
+  const [splitConfig, setSplitConfig] = useState<SplitConfigData | null>(initialSplitConfig);
+  const [workoutNames, setWorkoutNames] = useState<string[]>(initialWorkoutNames);
   const [isCountModalOpen, setIsCountModalOpen] = useState(false);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [pendingSplitCount, setPendingSplitCount] = useState<number | null>(null);
 
-  const fetchWorkoutNames = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const userId = user?.id || "anon_user";
-
-      const { data, error } = await supabase
-        .from("workouts")
-        .select("name")
-        .eq("user_id", userId)
-        .eq("is_disabled", false)
-        .not("name", "is", null);
-
-      if (error) {
-        console.error("Error fetching workout names:", error);
-        return;
-      }
-
-      if (data) {
-        const uniqueNames = Array.from(
-          new Set(data.map((w) => w.name).filter(Boolean))
-        ) as string[];
-        setWorkoutNames(uniqueNames);
-      }
-    } catch (error) {
-      console.error("Error fetching workout names:", error);
-    }
-  };
-
-  const fetchSplitConfig = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const userId = user?.id || "anon_user";
-
-      const { data, error } = await supabase
-        .from("split_config")
-        .select("split_count, split_order")
-        .eq("user_id", userId)
-        .single();
-
-      if (error && error.code !== "PGRST116") {
-        console.error("Error fetching split config:", error);
-        return;
-      }
-
-      if (data) {
-        setSplitConfig({
-          split_count: data.split_count,
-          split_order: data.split_order as string[],
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching split config:", error);
-    }
-  };
+  // Update local state when props change
+  useEffect(() => {
+    setSplitConfig(initialSplitConfig);
+    setWorkoutNames(initialWorkoutNames);
+  }, [initialSplitConfig, initialWorkoutNames]);
 
   const saveSplitCount = async (count: number) => {
     try {
@@ -106,10 +62,13 @@ export function SplitConfig() {
       });
       setPendingSplitCount(count);
 
-      // Fetch workout names and open order modal
-      await fetchWorkoutNames();
       setIsCountModalOpen(false);
       setIsOrderModalOpen(true);
+
+      // Trigger cache invalidation event
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('homeDataChanged'));
+      }
     } catch (error) {
       console.error("Error saving split count:", error);
       throw error;
@@ -157,6 +116,16 @@ export function SplitConfig() {
         split_order: order,
       });
       setIsOrderModalOpen(false);
+
+      // Notify parent to refresh data
+      if (onDataChange) {
+        onDataChange();
+      }
+
+      // Trigger cache invalidation event
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('homeDataChanged'));
+      }
     } catch (error) {
       console.error("Error saving split order:", error);
       throw error;
@@ -164,24 +133,11 @@ export function SplitConfig() {
   };
 
   useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      await Promise.all([fetchSplitConfig(), fetchWorkoutNames()]);
-      setIsLoading(false);
-    };
-    loadData();
-  }, []);
-
-  useEffect(() => {
     // If no config exists, show count modal on mount
-    if (!isLoading && !splitConfig && !isCountModalOpen && !isOrderModalOpen) {
+    if (!splitConfig && !isCountModalOpen && !isOrderModalOpen) {
       setIsCountModalOpen(true);
     }
-  }, [isLoading, splitConfig, isCountModalOpen, isOrderModalOpen]);
-
-  if (isLoading) {
-    return null;
-  }
+  }, [splitConfig, isCountModalOpen, isOrderModalOpen]);
 
   const handleEdit = () => {
     if (workoutNames.length === 0) {
