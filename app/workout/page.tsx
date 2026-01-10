@@ -1,80 +1,31 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Play, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { Play } from "lucide-react";
 import { WorkoutHistoryCard } from "./components/WorkoutHistoryCard";
 import { ActiveSessionDrawer } from "./components/ActiveSessionDrawer";
 import { WorkoutDetailDrawer } from "./components/WorkoutDetailDrawer";
 import { supabase } from "@/lib/supabase";
 import { WorkoutWithDetails } from "@/types/workout";
-import { ExerciseItem, ExerciseSet } from "./components/ExerciseCard";
+import { ExerciseItem } from "./components/ExerciseCard";
+import { useWorkoutHistoryStore } from "@/app/stores/useWorkoutHistoryStore";
+import { useEffect } from "react";
 
 export default function WorkoutPage() {
   const [isWorkoutActive, setIsWorkoutActive] = useState(false);
-  const [historyWorkouts, setHistoryWorkouts] = useState<WorkoutWithDetails[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { historyWorkouts, isLoading, refreshWorkoutHistory, fetchWorkoutHistory } = useWorkoutHistoryStore();
+
+  useEffect(() => {
+    fetchWorkoutHistory();
+  }, [fetchWorkoutHistory]);
   const [selectedWorkout, setSelectedWorkout] = useState<WorkoutWithDetails | null>(null);
 
   // Active session state props
   const [activeSessionInitialData, setActiveSessionInitialData] = useState<ExerciseItem[] | undefined>(undefined);
   const [activeSessionInitialName, setActiveSessionInitialName] = useState<string | undefined>(undefined);
 
-  // Fetch Workouts
-  const fetchWorkouts = async () => {
-    try {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from("workouts")
-        .select(`
-          *,
-          exercises (
-            *,
-            sets (*)
-          )
-        `)
-        .eq("is_disabled", false)
-        .order("start_time", { ascending: false });
-
-      if (error) throw error;
-
-      if (data) {
-        const formattedData = data.map((w: any) => ({
-          ...w,
-          exercises: w.exercises
-            .sort((a: any, b: any) => a.order - b.order)
-            .map((e: any) => ({
-              ...e,
-              sets: e.sets.sort((a: any, b: any) => a.order - b.order)
-            }))
-        }));
-
-        const uniqueWorkoutsMap = new Map<string, WorkoutWithDetails>();
-
-        formattedData.forEach((workout: WorkoutWithDetails) => {
-          const nameKey = workout.name ? workout.name.trim() : "Untitled";
-          if (!uniqueWorkoutsMap.has(nameKey)) {
-            uniqueWorkoutsMap.set(nameKey, workout);
-          }
-        });
-
-        setHistoryWorkouts(Array.from(uniqueWorkoutsMap.values()));
-      }
-    } catch (error) {
-      console.error("Error fetching workouts:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchWorkouts();
-  }, []);
-
   const handleDelete = async (id: string) => {
     try {
-      // Update state immediately for better UX
-      setHistoryWorkouts((prev) => prev.filter((w) => w.id !== id));
-
       // Update database
       const { error } = await supabase
         .from("workouts")
@@ -82,11 +33,17 @@ export default function WorkoutPage() {
         .eq("id", id);
 
       if (error) throw error;
+
+      // Trigger refresh event
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('workoutDeleted'));
+      }
+
+      // Refresh data
+      await refreshWorkoutHistory();
     } catch (error) {
       console.error("Error deleting workout:", error);
       alert("Failed to delete workout");
-      // Re-fetch on error to restore state
-      fetchWorkouts();
     }
   };
 

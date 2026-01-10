@@ -1,17 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
 import { Play } from "lucide-react";
 
 interface TodayWorkoutCardProps {
+    splitOrder: string[];
+    weekWorkouts: Array<{ start_time: string; name: string | null }>;
+    todayWorkout: { name: string | null } | null;
     onStartWorkout?: (workoutName: string) => void;
 }
 
-export function TodayWorkoutCard({ onStartWorkout }: TodayWorkoutCardProps) {
+export function TodayWorkoutCard({ splitOrder, weekWorkouts, todayWorkout: initialTodayWorkout, onStartWorkout }: TodayWorkoutCardProps) {
     const [todayWorkout, setTodayWorkout] = useState<string | null>(null);
-    const [splitOrder, setSplitOrder] = useState<string[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
 
     // Get today's day of week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
     const getTodayDayIndex = () => {
@@ -21,142 +21,68 @@ export function TodayWorkoutCard({ onStartWorkout }: TodayWorkoutCardProps) {
         return day === 0 ? 6 : day - 1;
     };
 
-    const fetchSplitOrder = async () => {
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            const userId = user?.id || "anon_user";
-
-            const { data, error } = await supabase
-                .from("split_config")
-                .select("split_order")
-                .eq("user_id", userId)
-                .single();
-
-            if (error && error.code !== "PGRST116") {
-                console.error("Error fetching split config:", error);
-                return;
-            }
-
-            if (data && data.split_order) {
-                setSplitOrder(data.split_order as string[]);
-            }
-        } catch (error) {
-            console.error("Error fetching split order:", error);
-        }
-    };
-
     // Get start of current week (Monday)
     const getWeekStart = () => {
         const now = new Date();
         const day = now.getDay();
-        const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+        const diff = now.getDate() - day + (day === 0 ? -6 : 1);
         const monday = new Date(now);
         monday.setDate(diff);
         monday.setHours(0, 0, 0, 0);
         return monday;
     };
 
-    const fetchTodayWorkout = async () => {
-        try {
-            const { data: { user } = {} } = await supabase.auth.getUser();
-            const userId = user?.id || "anon_user";
+    useEffect(() => {
+        // If workout was done today, use that name
+        if (initialTodayWorkout?.name) {
+            setTodayWorkout(initialTodayWorkout.name);
+            return;
+        }
 
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
+        // Calculate next workout based on completed workouts this week
+        if (splitOrder.length === 0) {
+            return;
+        }
 
-            // Check if workout was done today
-            const { data: workoutData, error: workoutError } = await supabase
-                .from("workouts")
-                .select("name")
-                .eq("user_id", userId)
-                .eq("is_disabled", false)
-                .gte("start_time", today.toISOString())
-                .lt("start_time", tomorrow.toISOString())
-                .limit(1);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        yesterday.setHours(23, 59, 59, 999);
 
-            if (workoutError) {
-                console.error("Error fetching today's workout:", workoutError);
-                return;
-            }
+        // Filter workouts from Monday to yesterday
+        const weekStart = getWeekStart();
+        const pastWeekWorkouts = weekWorkouts.filter((workout) => {
+            const workoutDate = new Date(workout.start_time);
+            return workoutDate >= weekStart && workoutDate <= yesterday;
+        });
 
-            // If workout was done today, use that name
-            if (workoutData && workoutData.length > 0 && workoutData[0].name) {
-                setTodayWorkout(workoutData[0].name);
-                return;
-            }
-
-            // Calculate next workout based on completed workouts this week
-            if (splitOrder.length === 0) {
-                return;
-            }
-
-            const weekStart = getWeekStart();
-            const yesterday = new Date(today);
-            yesterday.setDate(yesterday.getDate() - 1);
-            yesterday.setHours(23, 59, 59, 999);
-
-            // Get all workouts from Monday to yesterday
-            const { data: weekWorkouts, error: weekError } = await supabase
-                .from("workouts")
-                .select("start_time, name")
-                .eq("user_id", userId)
-                .eq("is_disabled", false)
-                .gte("start_time", weekStart.toISOString())
-                .lte("start_time", yesterday.toISOString())
-                .order("start_time", { ascending: true });
-
-            if (weekError) {
-                console.error("Error fetching week workouts:", weekError);
-                return;
-            }
-
-            // Find the last completed workout's index in split order
-            let lastWorkoutIndex = -1;
-            if (weekWorkouts && weekWorkouts.length > 0) {
-                // Get unique workout days and find the last one
-                const workoutDays = new Map<string, string>();
-                weekWorkouts.forEach((workout) => {
-                    const date = new Date(workout.start_time);
-                    const dateKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
-                    if (workout.name) {
-                        workoutDays.set(dateKey, workout.name);
-                    }
-                });
-
-                // Find the last workout name
-                const sortedDays = Array.from(workoutDays.entries()).sort();
-                if (sortedDays.length > 0) {
-                    const lastWorkoutName = sortedDays[sortedDays.length - 1][1];
-                    lastWorkoutIndex = splitOrder.indexOf(lastWorkoutName);
+        // Find the last completed workout's index in split order
+        let lastWorkoutIndex = -1;
+        if (pastWeekWorkouts.length > 0) {
+            // Get unique workout days and find the last one
+            const workoutDays = new Map<string, string>();
+            pastWeekWorkouts.forEach((workout) => {
+                const date = new Date(workout.start_time);
+                const dateKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+                if (workout.name) {
+                    workoutDays.set(dateKey, workout.name);
                 }
+            });
+
+            // Find the last workout name
+            const sortedDays = Array.from(workoutDays.entries()).sort();
+            if (sortedDays.length > 0) {
+                const lastWorkoutName = sortedDays[sortedDays.length - 1][1];
+                lastWorkoutIndex = splitOrder.indexOf(lastWorkoutName);
             }
-
-            // Calculate next workout index (rotate)
-            const nextIndex = (lastWorkoutIndex + 1) % splitOrder.length;
-            const workoutName = splitOrder[nextIndex];
-            setTodayWorkout(workoutName);
-        } catch (error) {
-            console.error("Error fetching today's workout:", error);
         }
-    };
 
-    useEffect(() => {
-        const loadData = async () => {
-            setIsLoading(true);
-            await fetchSplitOrder();
-            await fetchTodayWorkout();
-            setIsLoading(false);
-        };
-        loadData();
-    }, []);
-
-    useEffect(() => {
-        if (splitOrder.length > 0) {
-            fetchTodayWorkout();
-        }
-    }, [splitOrder]);
+        // Calculate next workout index (rotate)
+        const nextIndex = (lastWorkoutIndex + 1) % splitOrder.length;
+        const workoutName = splitOrder[nextIndex];
+        setTodayWorkout(workoutName);
+    }, [initialTodayWorkout, splitOrder, weekWorkouts]);
 
     const handleStartWorkout = () => {
         if (!todayWorkout) return;
@@ -166,7 +92,7 @@ export function TodayWorkoutCard({ onStartWorkout }: TodayWorkoutCardProps) {
         }
     };
 
-    if (isLoading || !todayWorkout) {
+    if (!todayWorkout) {
         return null;
     }
 

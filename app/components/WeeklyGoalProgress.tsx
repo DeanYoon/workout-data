@@ -1,95 +1,31 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { WeeklyGoalModal } from "./WeeklyGoalModal";
 
-export function WeeklyGoalProgress() {
-    const [weeklyGoal, setWeeklyGoal] = useState<number | null>(null);
-    const [currentWeekWorkouts, setCurrentWeekWorkouts] = useState<number>(0);
-    const [isLoading, setIsLoading] = useState(true);
+interface WeeklyGoalProgressProps {
+    weeklyGoal: number | null;
+    weekWorkouts: Array<{ start_time: string; name: string | null }>;
+    onDataChange?: () => void;
+}
+
+export function WeeklyGoalProgress({ weeklyGoal: initialWeeklyGoal, weekWorkouts, onDataChange }: WeeklyGoalProgressProps) {
+    const [weeklyGoal, setWeeklyGoal] = useState<number | null>(initialWeeklyGoal);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    // Get start and end of current week (Monday to Sunday)
-    const getWeekRange = () => {
-        const now = new Date();
-        const day = now.getDay();
-        const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
-        const monday = new Date(now);
-        monday.setDate(diff);
-        monday.setHours(0, 0, 0, 0);
-        const sunday = new Date(monday);
-        sunday.setDate(monday.getDate() + 6);
-        sunday.setHours(23, 59, 59, 999);
-        return { start: monday.toISOString(), end: sunday.toISOString() };
-    };
-
-    const fetchWeeklyGoal = async () => {
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            const userId = user?.id || "anon_user";
-
-            const { data, error } = await supabase
-                .from("weekly_goals")
-                .select("weekly_target")
-                .eq("user_id", userId)
-                .single();
-
-            if (error && error.code !== "PGRST116") {
-                // PGRST116 is "no rows returned", which is fine
-                console.error("Error fetching weekly goal:", error);
-                return;
-            }
-
-            if (data) {
-                setWeeklyGoal(data.weekly_target);
-            }
-        } catch (error) {
-            console.error("Error fetching weekly goal:", error);
-        }
-    };
-
-    const fetchCurrentWeekWorkouts = async () => {
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            const userId = user?.id || "anon_user";
-
-            const { start, end } = getWeekRange();
-
-            const { data, error } = await supabase
-                .from("workouts")
-                .select("start_time")
-                .eq("user_id", userId)
-                .eq("is_disabled", false)
-                .gte("start_time", start)
-                .lte("start_time", end);
-
-            if (error) {
-                console.error("Error fetching workouts:", error);
-                return;
-            }
-
-            if (data) {
-                // Count unique workout days
-                const uniqueDays = new Set(
-                    data.map((workout) => {
-                        const date = new Date(workout.start_time);
-                        return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
-                    })
-                );
-                setCurrentWeekWorkouts(uniqueDays.size);
-            }
-        } catch (error) {
-            console.error("Error fetching current week workouts:", error);
-        }
-    };
+    // Count unique workout days from weekWorkouts
+    const currentWeekWorkouts = new Set(
+        weekWorkouts.map((workout) => {
+            const date = new Date(workout.start_time);
+            return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+        })
+    ).size;
 
     const saveWeeklyGoal = async (goal: number) => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             const userId = user?.id || "anon_user";
-
-            console.log("Saving weekly goal:", { userId, goal });
 
             const { data, error } = await supabase
                 .from("weekly_goals")
@@ -107,31 +43,23 @@ export function WeeklyGoalProgress() {
                 throw error;
             }
 
-            console.log("Weekly goal saved successfully:", data);
-
             // Update state immediately
             setWeeklyGoal(goal);
 
-            // Refresh workout count after saving
-            await fetchCurrentWeekWorkouts();
+            // Notify parent to refresh data
+            if (onDataChange) {
+                onDataChange();
+            }
+
+            // Trigger cache invalidation event
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('homeDataChanged'));
+            }
         } catch (error) {
             console.error("Error saving weekly goal:", error);
             throw error;
         }
     };
-
-    useEffect(() => {
-        const loadData = async () => {
-            setIsLoading(true);
-            await Promise.all([fetchWeeklyGoal(), fetchCurrentWeekWorkouts()]);
-            setIsLoading(false);
-        };
-        loadData();
-    }, []);
-
-    if (isLoading) {
-        return null;
-    }
 
     // Don't show if no goal is set
     if (weeklyGoal === null) {

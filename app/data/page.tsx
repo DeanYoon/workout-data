@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useWorkoutAnalytics, DateAnalytics } from '@/hooks/useWorkoutAnalytics';
+import { useState, useMemo, useEffect } from 'react';
+import { useWorkoutAnalyticsStore, DateAnalytics } from '@/app/stores/useWorkoutAnalyticsStore';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Dot } from 'recharts';
 import { format, parseISO } from 'date-fns';
 import { ChevronDown } from 'lucide-react';
@@ -15,7 +15,11 @@ const METRIC_LABELS: Record<MetricType, string> = {
 };
 
 export default function DataPage() {
-  const { data, isLoading, error } = useWorkoutAnalytics();
+  const { data, isLoading, error, fetchAnalytics } = useWorkoutAnalyticsStore();
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [fetchAnalytics]);
   const [selectedExercise, setSelectedExercise] = useState<string>('');
   const [selectedMetric, setSelectedMetric] = useState<MetricType>('maxWeight');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -27,7 +31,7 @@ export default function DataPage() {
 
   const mostRecentExercise = useMemo(() => {
     if (availableExercises.length === 0) return '';
-    
+
     let mostRecent = availableExercises[0];
     let mostRecentDate = '';
 
@@ -158,9 +162,8 @@ export default function DataPage() {
             >
               <span>{selectedExercise || 'Select exercise'}</span>
               <ChevronDown
-                className={`h-5 w-5 text-zinc-400 transition-transform ${
-                  isDropdownOpen ? 'rotate-180' : ''
-                }`}
+                className={`h-5 w-5 text-zinc-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''
+                  }`}
               />
             </button>
             {isDropdownOpen && (
@@ -177,11 +180,10 @@ export default function DataPage() {
                         setSelectedExercise(exercise);
                         setIsDropdownOpen(false);
                       }}
-                      className={`w-full px-4 py-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors ${
-                        selectedExercise === exercise
-                          ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium'
-                          : ''
-                      }`}
+                      className={`w-full px-4 py-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors ${selectedExercise === exercise
+                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium'
+                        : ''
+                        }`}
                     >
                       {exercise}
                     </button>
@@ -202,11 +204,10 @@ export default function DataPage() {
               <button
                 key={metric}
                 onClick={() => setSelectedMetric(metric)}
-                className={`flex-1 rounded-xl px-4 py-3 font-medium transition-colors ${
-                  selectedMetric === metric
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                    : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'
-                }`}
+                className={`flex-1 rounded-xl px-4 py-3 font-medium transition-colors ${selectedMetric === metric
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                  : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                  }`}
               >
                 {METRIC_LABELS[metric]}
               </button>

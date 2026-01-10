@@ -9,11 +9,18 @@ import { ActiveSessionDrawer } from "./workout/components/ActiveSessionDrawer";
 import { supabase } from "@/lib/supabase";
 import { WorkoutWithDetails } from "@/types/workout";
 import { ExerciseItem } from "./workout/components/ExerciseCard";
+import { useHomeDataStore } from "./stores/useHomeDataStore";
+import { useEffect } from "react";
 
 export default function Home() {
   const [isWorkoutActive, setIsWorkoutActive] = useState(false);
   const [activeSessionInitialData, setActiveSessionInitialData] = useState<ExerciseItem[] | undefined>(undefined);
   const [activeSessionInitialName, setActiveSessionInitialName] = useState<string | undefined>(undefined);
+  const { homeData, isLoading, refreshHomeData, fetchHomeData } = useHomeDataStore();
+
+  useEffect(() => {
+    fetchHomeData();
+  }, [fetchHomeData]);
 
   const handleStartWorkout = async (workoutName: string) => {
     try {
@@ -82,14 +89,50 @@ export default function Home() {
     }
   };
 
+  const handleDataRefresh = () => {
+    refreshHomeData();
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-4">
+        <h1 className="text-2xl font-bold mb-4">Home</h1>
+        <div className="space-y-4">
+          <div className="h-20 bg-zinc-100 dark:bg-zinc-900 rounded-2xl animate-pulse" />
+          <div className="h-20 bg-zinc-100 dark:bg-zinc-900 rounded-2xl animate-pulse" />
+          <div className="h-20 bg-zinc-100 dark:bg-zinc-900 rounded-2xl animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">Home</h1>
-      <WeeklyGoalProgress />
-      <SplitConfig />
-      <WeeklySchedule />
-      <TodayWorkoutCard onStartWorkout={handleStartWorkout} />
-      <p className="text-zinc-500">Welcome to your fitness dashboard.</p>
+      {homeData && (
+        <>
+          <WeeklyGoalProgress
+            weeklyGoal={homeData.weeklyGoal}
+            weekWorkouts={homeData.weekWorkouts}
+            onDataChange={handleDataRefresh}
+          />
+          <SplitConfig
+            splitConfig={homeData.splitConfig}
+            workoutNames={homeData.workoutNames}
+            onDataChange={handleDataRefresh}
+          />
+          <WeeklySchedule
+            splitOrder={homeData.splitConfig?.split_order ?? []}
+            weekWorkouts={homeData.weekWorkouts}
+          />
+          <TodayWorkoutCard
+            splitOrder={homeData.splitConfig?.split_order ?? []}
+            weekWorkouts={homeData.weekWorkouts}
+            todayWorkout={homeData.todayWorkout}
+            onStartWorkout={handleStartWorkout}
+          />
+        </>
+      )}
 
       <ActiveSessionDrawer
         isOpen={isWorkoutActive}
@@ -97,6 +140,7 @@ export default function Home() {
           setIsWorkoutActive(false);
           setActiveSessionInitialData(undefined);
           setActiveSessionInitialName(undefined);
+          handleDataRefresh();
         }}
         initialData={activeSessionInitialData}
         initialWorkoutName={activeSessionInitialName}
