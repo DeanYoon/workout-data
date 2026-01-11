@@ -87,7 +87,10 @@ export function WeightChart({ weightRecords }: WeightChartProps) {
               padding: '8px 12px',
             }}
             labelStyle={{ color: '#18181b', fontWeight: 600 }}
-            formatter={(value: number) => [`${value.toFixed(1)} kg`, '몸무게']}
+            formatter={(value: number | undefined) => {
+              if (value === undefined) return '';
+              return [`${value.toFixed(1)} kg`, '몸무게'];
+            }}
             labelFormatter={(label) => `날짜: ${label}`}
           />
           <Line
