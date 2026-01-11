@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Clock, Dumbbell, Trash2 } from "lucide-react";
-import { DeleteConfirmModal } from "./DeleteConfirmModal";
+import { DeleteConfirmModal } from "@/app/components/Workout/DeleteConfirmModal";
 
 interface WorkoutHistoryItemProps {
   id: string; // Added ID

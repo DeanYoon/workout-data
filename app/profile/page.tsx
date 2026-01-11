@@ -74,9 +74,9 @@ export default function ProfilePage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="p-4">
-        <h1 className="text-2xl font-bold mb-4">Profile</h1>
+  return (
+    <div className="p-4">
+      <h1 className="text-2xl font-bold mb-4">Profile</h1>
         <div className="space-y-4">
           <div className="h-20 bg-zinc-100 dark:bg-zinc-900 rounded-2xl animate-pulse" />
           <div className="h-20 bg-zinc-100 dark:bg-zinc-900 rounded-2xl animate-pulse" />

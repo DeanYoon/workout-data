@@ -13,6 +13,10 @@ interface HomeData {
     start_time: string;
     name: string | null;
   }>;
+  allWorkouts: Array<{
+    start_time: string;
+    name: string | null;
+  }>;
   todayWorkout: {
     name: string | null;
   } | null;
@@ -167,6 +171,7 @@ export const useHomeDataStore = create<HomeDataStore>((set, get) => {
             : null,
           workoutNames,
           weekWorkouts,
+          allWorkouts,
           todayWorkout,
           cachedDate: getTodayDateString(),
         };
@@ -179,6 +184,9 @@ export const useHomeDataStore = create<HomeDataStore>((set, get) => {
     },
 
     refreshHomeData: async () => {
+      // Clear cache and fetch fresh data
+      cachedUserId = null;
+      set({ homeData: null });
       await get().fetchHomeData();
     },
 

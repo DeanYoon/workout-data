@@ -1,7 +1,10 @@
 "use client";
 
 import { Play, X } from "lucide-react";
+import { format } from "date-fns";
+import { ko } from "date-fns/locale";
 import { WorkoutWithDetails } from "@/types/workout";
+import { WorkoutDetailView } from "./WorkoutDetailView";
 
 interface WorkoutDetailDrawerProps {
   workout: WorkoutWithDetails | null;
@@ -18,19 +21,9 @@ export function WorkoutDetailDrawer({
 }: WorkoutDetailDrawerProps) {
   if (!isOpen || !workout) return null;
 
-  // Format date
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
   return (
     <>
-      <div 
+      <div
         className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
@@ -42,7 +35,7 @@ export function WorkoutDetailDrawer({
               {workout.name || "Untitled Workout"}
             </h2>
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              {formatDate(workout.start_time)}
+              {format(new Date(workout.start_time), "yyyy년 M월 d일 (E)", { locale: ko })}
             </p>
           </div>
           <button
@@ -55,32 +48,7 @@ export function WorkoutDetailDrawer({
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
-          <div className="space-y-6">
-            {workout.exercises.map((exercise, index) => (
-              <div key={exercise.id} className="rounded-xl border border-zinc-100 bg-zinc-50/50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
-                <h3 className="mb-3 font-semibold text-zinc-900 dark:text-zinc-100">
-                  {index + 1}. {exercise.name}
-                </h3>
-                
-                {/* Sets Table */}
-                <div className="grid grid-cols-12 gap-2 text-xs font-medium text-zinc-500 uppercase tracking-wide text-center mb-2">
-                  <div className="col-span-2">Set</div>
-                  <div className="col-span-5">kg</div>
-                  <div className="col-span-5">Reps</div>
-                </div>
-
-                <div className="space-y-1">
-                  {exercise.sets.map((set, setIndex) => (
-                    <div key={set.id} className="grid grid-cols-12 gap-2 text-sm text-center py-1">
-                      <div className="col-span-2 text-zinc-500">{setIndex + 1}</div>
-                      <div className="col-span-5 font-medium">{set.weight}</div>
-                      <div className="col-span-5 font-medium">{set.reps}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
+          <WorkoutDetailView workout={workout} variant="drawer" />
         </div>
 
         {/* Footer Action */}

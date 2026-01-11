@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { Play } from "lucide-react";
-import { WorkoutHistoryCard } from "./components/WorkoutHistoryCard";
-import { ActiveSessionDrawer } from "./components/ActiveSessionDrawer";
-import { WorkoutDetailDrawer } from "./components/WorkoutDetailDrawer";
+import { WorkoutHistoryCard } from "@/app/components/WorkoutHistoryCard";
+import { ActiveSessionDrawer } from "@/app/components/Workout/ActiveSessionDrawer";
+import { WorkoutDetailDrawer } from "@/app/components/WorkoutDetail/WorkoutDetailDrawer";
 import { supabase } from "@/lib/supabase";
 import { WorkoutWithDetails } from "@/types/workout";
-import { ExerciseItem } from "./components/ExerciseCard";
+import { ExerciseItem } from "@/app/components/Workout/ExerciseCard";
 import { useWorkoutHistoryStore } from "@/app/stores/useWorkoutHistoryStore";
 import { useEffect } from "react";
 
@@ -21,6 +21,20 @@ export default function WorkoutPage() {
       fetchWorkoutHistory();
     }
   }, [isLoaded, fetchWorkoutHistory]);
+
+  // Listen for workout saved event to refresh history
+  useEffect(() => {
+    const handleWorkoutSaved = () => {
+      refreshWorkoutHistory();
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('workoutSaved', handleWorkoutSaved);
+      return () => {
+        window.removeEventListener('workoutSaved', handleWorkoutSaved);
+      };
+    }
+  }, [refreshWorkoutHistory]);
   const [selectedWorkout, setSelectedWorkout] = useState<WorkoutWithDetails | null>(null);
 
   // Active session state props

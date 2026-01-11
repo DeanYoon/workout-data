@@ -5,10 +5,10 @@ import { WeeklyGoalProgress } from "./components/WeeklyGoalProgress";
 import { SplitConfig } from "./components/SplitConfig";
 import { WeeklySchedule } from "./components/WeeklySchedule";
 import { TodayWorkoutCard } from "./components/TodayWorkoutCard";
-import { ActiveSessionDrawer } from "./workout/components/ActiveSessionDrawer";
+import { ActiveSessionDrawer } from "./components/Workout/ActiveSessionDrawer";
 import { supabase } from "@/lib/supabase";
 import { WorkoutWithDetails } from "@/types/workout";
-import { ExerciseItem } from "./workout/components/ExerciseCard";
+import { ExerciseItem } from "./components/Workout/ExerciseCard";
 import { useHomeDataStore } from "./stores/useHomeDataStore";
 import { useEffect } from "react";
 
@@ -124,6 +124,7 @@ export default function Home() {
           <WeeklySchedule
             splitOrder={homeData.splitConfig?.split_order ?? []}
             weekWorkouts={homeData.weekWorkouts}
+            allWorkouts={homeData.allWorkouts}
           />
           <TodayWorkoutCard
             splitOrder={homeData.splitConfig?.split_order ?? []}

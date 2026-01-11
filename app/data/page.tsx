@@ -332,12 +332,12 @@ export default function DataPage() {
                       <th className="text-left py-3 px-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100 sticky left-0 bg-white dark:bg-zinc-900 z-10">
                         세트
                       </th>
-                      {exerciseHistory.map((workout, index) => (
+                      {exerciseHistory.slice().reverse().map((workout, index) => (
                         <th
                           key={workout.workoutId}
                           className="text-center py-3 px-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100 min-w-[120px] bg-zinc-50 dark:bg-zinc-800/50"
                         >
-                          <div className="font-bold">{index + 1}회 전</div>
+                          <div className="font-bold">{exerciseHistory.length - index}회 전</div>
                           <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 font-normal">
                             {format(parseISO(workout.workoutDate), 'MM/dd')}
                           </div>
@@ -361,7 +361,7 @@ export default function DataPage() {
                             <td className="py-3 px-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300 sticky left-0 bg-white dark:bg-zinc-900 z-10 border-r border-zinc-200 dark:border-zinc-800">
                               {setIndex + 1}세트
                             </td>
-                            {exerciseHistory.map((workout) => {
+                            {exerciseHistory.slice().reverse().map((workout) => {
                               const set = workout.sets[setIndex];
                               return (
                                 <td
@@ -396,7 +396,7 @@ export default function DataPage() {
                           <td className="py-3 px-3 text-sm font-bold text-zinc-900 dark:text-zinc-100 sticky left-0 bg-zinc-50 dark:bg-zinc-800/50 z-10 border-r border-zinc-200 dark:border-zinc-800">
                             총 키로수
                           </td>
-                          {exerciseHistory.map((workout) => {
+                          {exerciseHistory.slice().reverse().map((workout) => {
                             // Calculate total volume for this workout
                             const totalVolume = workout.sets.reduce((sum, set) => {
                               return sum + (set.weight * set.reps);
