@@ -17,12 +17,15 @@ const METRIC_LABELS: Record<MetricType, string> = {
 };
 
 export default function DataPage() {
-  const { data, isLoading, error, fetchAnalytics } = useWorkoutAnalyticsStore();
+  const { data, isLoading, error, isLoaded, fetchAnalytics } = useWorkoutAnalyticsStore();
   const { exerciseHistory, isLoading: isHistoryLoading, fetchExerciseHistory, clearHistory } = useExerciseHistoryStore();
 
   useEffect(() => {
-    fetchAnalytics();
-  }, [fetchAnalytics]);
+    // Only fetch if not already loaded
+    if (!isLoaded) {
+      fetchAnalytics();
+    }
+  }, [isLoaded, fetchAnalytics]);
 
   const [selectedExercise, setSelectedExercise] = useState<string>('');
   const [selectedMetric, setSelectedMetric] = useState<MetricType>('maxWeight');
@@ -33,10 +36,9 @@ export default function DataPage() {
   useEffect(() => {
     if (selectedExercise && viewType === 'history') {
       fetchExerciseHistory(selectedExercise);
-    } else {
-      clearHistory();
     }
-  }, [selectedExercise, viewType, fetchExerciseHistory, clearHistory]);
+    // Don't clear history when switching to chart view - keep it cached
+  }, [selectedExercise, viewType, fetchExerciseHistory]);
 
   // Get available exercises and find the most recent one
   const availableExercises = useMemo(() => {

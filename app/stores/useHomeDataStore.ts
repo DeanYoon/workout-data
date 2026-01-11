@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
+import { useUserStore } from './useUserStore';
 
 interface HomeData {
   weeklyGoal: number | null;
@@ -23,6 +24,7 @@ interface HomeDataStore {
   isLoading: boolean;
   fetchHomeData: () => Promise<void>;
   refreshHomeData: () => Promise<void>;
+  clearHomeData: () => void;
 }
 
 // Get today's date in YYYY-MM-DD format
@@ -60,6 +62,8 @@ const getTodayRange = () => {
 };
 
 export const useHomeDataStore = create<HomeDataStore>((set, get) => {
+  let cachedUserId: string | null = null;
+
   // Initialize event listeners
   if (typeof window !== 'undefined') {
     const handleDataChange = () => {
@@ -85,16 +89,20 @@ export const useHomeDataStore = create<HomeDataStore>((set, get) => {
     fetchHomeData: async () => {
       const { homeData } = get();
       
-      // Check if cache is valid
-      if (homeData && isCacheValid(homeData.cachedDate)) {
+      // Get current user ID from cached store
+      const userId = await useUserStore.getState().getUserId();
+
+      // Check if cache is valid for the same user
+      if (homeData && isCacheValid(homeData.cachedDate) && cachedUserId === userId) {
         set({ isLoading: false });
         return;
       }
 
+      // Update cached user ID
+      cachedUserId = userId;
+
       try {
         set({ isLoading: true });
-        const { data: { user } } = await supabase.auth.getUser();
-        const userId = user?.id || "anon_user";
 
         const { start: weekStart, end: weekEnd } = getWeekRange();
         const { start: todayStart, end: todayEnd } = getTodayRange();
@@ -172,6 +180,11 @@ export const useHomeDataStore = create<HomeDataStore>((set, get) => {
 
     refreshHomeData: async () => {
       await get().fetchHomeData();
+    },
+
+    clearHomeData: () => {
+      cachedUserId = null;
+      set({ homeData: null, isLoading: false });
     },
   };
 });

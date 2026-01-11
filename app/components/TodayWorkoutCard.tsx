@@ -57,28 +57,33 @@ export function TodayWorkoutCard({ splitOrder, weekWorkouts, todayWorkout: initi
             return workoutDate >= weekStart && workoutDate <= yesterday;
         });
 
-        // Find the last completed workout's index in split order
-        let lastWorkoutIndex = -1;
+        // Get completed workouts in chronological order (by date)
+        const completedWorkouts: string[] = [];
         if (pastWeekWorkouts.length > 0) {
-            // Get unique workout days and find the last one
-            const workoutDays = new Map<string, string>();
-            pastWeekWorkouts.forEach((workout) => {
-                const date = new Date(workout.start_time);
-                const dateKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
-                if (workout.name) {
-                    workoutDays.set(dateKey, workout.name);
-                }
+            // Sort by date
+            const sortedWorkouts = [...pastWeekWorkouts].sort((a, b) => {
+                return new Date(a.start_time).getTime() - new Date(b.start_time).getTime();
             });
 
-            // Find the last workout name
-            const sortedDays = Array.from(workoutDays.entries()).sort();
-            if (sortedDays.length > 0) {
-                const lastWorkoutName = sortedDays[sortedDays.length - 1][1];
-                lastWorkoutIndex = splitOrder.indexOf(lastWorkoutName);
-            }
+            // Get unique workout names in order (first occurrence of each workout)
+            const seenWorkouts = new Set<string>();
+            sortedWorkouts.forEach((workout) => {
+                if (workout.name && !seenWorkouts.has(workout.name)) {
+                    completedWorkouts.push(workout.name);
+                    seenWorkouts.add(workout.name);
+                }
+            });
+        }
+
+        // Find the last completed workout's index in split order
+        let lastWorkoutIndex = -1;
+        if (completedWorkouts.length > 0) {
+            const lastWorkoutName = completedWorkouts[completedWorkouts.length - 1];
+            lastWorkoutIndex = splitOrder.indexOf(lastWorkoutName);
         }
 
         // Calculate next workout index (rotate)
+        // If all workouts in split order are completed, start from the beginning
         const nextIndex = (lastWorkoutIndex + 1) % splitOrder.length;
         const workoutName = splitOrder[nextIndex];
         setTodayWorkout(workoutName);

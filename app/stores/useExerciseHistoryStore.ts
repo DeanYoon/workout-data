@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
+import { useUserStore } from './useUserStore';
 
 export interface ExerciseSetHistory {
     workoutId: string;
@@ -21,24 +22,57 @@ export interface ExerciseHistoryByWorkout {
 
 interface ExerciseHistoryStore {
     exerciseHistory: ExerciseHistoryByWorkout[];
+    historyCache: Map<string, ExerciseHistoryByWorkout[]>; // Cache by exercise name
+    currentExercise: string | null; // Currently displayed exercise
     isLoading: boolean;
     error: Error | null;
     fetchExerciseHistory: (exerciseName: string) => Promise<void>;
     clearHistory: () => void;
+    clearCache: () => void;
 }
 
 export const useExerciseHistoryStore = create<ExerciseHistoryStore>((set, get) => {
+    // Initialize event listeners for cache invalidation
+    if (typeof window !== 'undefined') {
+        const handleWorkoutChange = () => {
+            // Clear cache when workout is saved or deleted
+            get().clearCache();
+        };
+
+        window.addEventListener('workoutSaved', handleWorkoutChange);
+        window.addEventListener('workoutDeleted', handleWorkoutChange);
+    }
+
     return {
         exerciseHistory: [],
+        historyCache: new Map(),
+        currentExercise: null,
         isLoading: false,
         error: null,
 
         fetchExerciseHistory: async (exerciseName: string) => {
-            try {
-                set({ isLoading: true, error: null });
+            const { historyCache, currentExercise } = get();
 
-                const { data: { user } } = await supabase.auth.getUser();
-                const userId = user?.id || "anon_user";
+            // If same exercise is already displayed and cached, use cache
+            if (currentExercise === exerciseName && historyCache.has(exerciseName)) {
+                const cachedData = historyCache.get(exerciseName)!;
+                set({ exerciseHistory: cachedData, isLoading: false });
+                return;
+            }
+
+            // If different exercise but cached, use cache immediately and fetch in background
+            if (historyCache.has(exerciseName)) {
+                const cachedData = historyCache.get(exerciseName)!;
+                set({ exerciseHistory: cachedData, currentExercise: exerciseName, isLoading: false });
+                // Optionally refresh in background, but for now just use cache
+                return;
+            }
+
+            try {
+                set({ isLoading: true, error: null, currentExercise: exerciseName });
+
+                // Get current user ID from cached store
+                const userId = await useUserStore.getState().getUserId();
 
                 // First, get all workouts with exercises and sets
                 const { data: workoutsData, error: workoutsError } = await supabase
@@ -98,7 +132,14 @@ export const useExerciseHistoryStore = create<ExerciseHistoryStore>((set, get) =
                     };
                 }).filter(Boolean) as ExerciseHistoryByWorkout[];
 
-                set({ exerciseHistory: history, isLoading: false });
+                // Update cache and state
+                const newCache = new Map(historyCache);
+                newCache.set(exerciseName, history);
+                set({
+                    exerciseHistory: history,
+                    historyCache: newCache,
+                    isLoading: false
+                });
             } catch (err) {
                 console.error('Error fetching exercise history:', err);
                 set({
@@ -109,7 +150,11 @@ export const useExerciseHistoryStore = create<ExerciseHistoryStore>((set, get) =
         },
 
         clearHistory: () => {
-            set({ exerciseHistory: [], error: null });
+            set({ exerciseHistory: [], currentExercise: null, error: null });
+        },
+
+        clearCache: () => {
+            set({ historyCache: new Map(), exerciseHistory: [], currentExercise: null });
         },
     };
 });

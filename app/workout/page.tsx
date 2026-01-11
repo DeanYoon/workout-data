@@ -13,11 +13,14 @@ import { useEffect } from "react";
 
 export default function WorkoutPage() {
   const [isWorkoutActive, setIsWorkoutActive] = useState(false);
-  const { historyWorkouts, isLoading, refreshWorkoutHistory, fetchWorkoutHistory } = useWorkoutHistoryStore();
+  const { historyWorkouts, isLoading, isLoaded, refreshWorkoutHistory, fetchWorkoutHistory } = useWorkoutHistoryStore();
 
   useEffect(() => {
-    fetchWorkoutHistory();
-  }, [fetchWorkoutHistory]);
+    // Only fetch if not already loaded
+    if (!isLoaded) {
+      fetchWorkoutHistory();
+    }
+  }, [isLoaded, fetchWorkoutHistory]);
   const [selectedWorkout, setSelectedWorkout] = useState<WorkoutWithDetails | null>(null);
 
   // Active session state props
