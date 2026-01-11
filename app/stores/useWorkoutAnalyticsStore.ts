@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
+import { useUserStore } from './useUserStore';
 
 export interface DateAnalytics {
   date: string; // YYYY-MM-DD format
@@ -24,11 +25,15 @@ interface WorkoutAnalyticsStore {
   data: WorkoutAnalyticsData;
   isLoading: boolean;
   error: Error | null;
+  isLoaded: boolean; // Whether data has been loaded at least once
   fetchAnalytics: () => Promise<void>;
   refreshAnalytics: () => Promise<void>;
+  clearAnalytics: () => void;
 }
 
 export const useWorkoutAnalyticsStore = create<WorkoutAnalyticsStore>((set, get) => {
+  let cachedUserId: string | null = null;
+
   // Initialize event listeners
   if (typeof window !== 'undefined') {
     const handleWorkoutChange = () => {
@@ -43,27 +48,41 @@ export const useWorkoutAnalyticsStore = create<WorkoutAnalyticsStore>((set, get)
     data: {},
     isLoading: true,
     error: null,
+    isLoaded: false,
 
     fetchAnalytics: async () => {
-      const { data } = get();
-      
-      // If we have cached data, use it
-      if (Object.keys(data).length > 0) {
+      const { data, isLoaded } = get();
+
+      // Get current user ID from cached store
+      const userId = await useUserStore.getState().getUserId();
+
+      // If we have cached data for the same user, use it
+      if (isLoaded && Object.keys(data).length > 0 && cachedUserId === userId) {
         set({ isLoading: false });
         return;
       }
+
+      // If no data but already loaded (empty result), don't fetch again
+      if (isLoaded && cachedUserId === userId) {
+        set({ isLoading: false });
+        return;
+      }
+
+      // Update cached user ID
+      cachedUserId = userId;
 
       try {
         set({ isLoading: true, error: null });
 
         // Call RPC function to get aggregated data from database
+        // RPC function filters by auth.uid() or 'anon_user' automatically
         const { data: analyticsData, error: fetchError } = await supabase
           .rpc('get_workout_analytics');
 
         if (fetchError) throw fetchError;
 
         if (!analyticsData || analyticsData.length === 0) {
-          set({ data: {}, isLoading: false });
+          set({ data: {}, isLoading: false, isLoaded: true });
           return;
         }
 
@@ -94,12 +113,13 @@ export const useWorkoutAnalyticsStore = create<WorkoutAnalyticsStore>((set, get)
           analyticsMap[exerciseName].sort((a, b) => a.date.localeCompare(b.date));
         });
 
-        set({ data: analyticsMap, isLoading: false });
+        set({ data: analyticsMap, isLoading: false, isLoaded: true });
       } catch (err) {
         console.error('Error fetching workout analytics:', err);
-        set({ 
+        set({
           error: err instanceof Error ? err : new Error('Failed to fetch analytics'),
-          isLoading: false 
+          isLoading: false,
+          isLoaded: true
         });
       }
     },
@@ -108,6 +128,11 @@ export const useWorkoutAnalyticsStore = create<WorkoutAnalyticsStore>((set, get)
       // Clear cache and fetch fresh data
       set({ data: {} });
       await get().fetchAnalytics();
+    },
+
+    clearAnalytics: () => {
+      cachedUserId = null;
+      set({ data: {}, isLoading: false, error: null, isLoaded: false });
     },
   };
 });

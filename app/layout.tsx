@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { BottomNavigation } from "./components/BottomNavigation";
+import { ThemeProvider } from "./components/ThemeProvider";
+import { AuthProvider } from "./components/AuthProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,12 +37,16 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100`}
       >
-        <div className="mx-auto min-h-screen max-w-md bg-white shadow-2xl dark:bg-black dark:shadow-zinc-900/20">
-          <main className="min-h-screen pb-20">
-            {children}
-          </main>
-          <BottomNavigation />
-        </div>
+        <ThemeProvider>
+          <AuthProvider>
+            <div className="mx-auto min-h-screen max-w-md bg-white shadow-2xl dark:bg-black dark:shadow-zinc-900/20">
+              <main className="min-h-screen pb-20">
+                {children}
+              </main>
+              <BottomNavigation />
+            </div>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
