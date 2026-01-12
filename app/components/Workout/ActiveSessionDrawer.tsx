@@ -10,7 +10,7 @@ import { DeleteConfirmModal } from "./DeleteConfirmModal";
 import { ExerciseCard, ExerciseItem, ExerciseSet } from "./ExerciseCard";
 import { supabase } from "@/lib/supabase";
 
-interface ActiveSessionDrawerProps {
+export interface ActiveSessionDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   initialData?: ExerciseItem[];
@@ -344,6 +344,7 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
         const exerciseData = {
           id: ex.id,
           workout_id: workoutId,
+          user_id: userId,
           name: ex.name,
           order: i
         };
@@ -353,6 +354,7 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
         const setsToInsert = ex.sets.map((set, setIndex) => ({
           id: set.id,
           exercise_id: ex.id,
+          user_id: userId,
           weight: set.weight,
           reps: set.reps,
           is_completed: set.isCompleted,

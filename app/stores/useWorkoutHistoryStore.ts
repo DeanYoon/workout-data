@@ -32,7 +32,7 @@ export const useWorkoutHistoryStore = create<WorkoutHistoryStore>((set, get) => 
 
     fetchWorkoutHistory: async () => {
       const { historyWorkouts, isLoaded } = get();
-
+      
       // Get current user ID from cached store
       const userId = await useUserStore.getState().getUserId();
 
@@ -100,8 +100,9 @@ export const useWorkoutHistoryStore = create<WorkoutHistoryStore>((set, get) => 
     },
 
     refreshWorkoutHistory: async () => {
-      // Clear cache and fetch fresh data
-      set({ historyWorkouts: [] });
+      // Clear cache and fetch fresh data from server
+      cachedUserId = null;
+      set({ historyWorkouts: [], isLoaded: false });
       await get().fetchWorkoutHistory();
     },
 

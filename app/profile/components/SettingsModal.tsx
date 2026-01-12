@@ -32,7 +32,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   useEffect(() => {
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
         setUserInfo({
           id: session.user.id,
@@ -43,6 +43,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         setUserInfo({
           id: 'anon_user',
         });
+        // Close modal when user signs out
+        if (event === 'SIGNED_OUT') {
+          onClose();
+        }
       }
       if (activeSection === 'account') {
         fetchUserInfo();
@@ -50,7 +54,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     });
 
     return () => subscription.unsubscribe();
-  }, [activeSection]);
+  }, [activeSection, onClose]);
 
   const fetchUserInfo = async () => {
     try {
@@ -110,6 +114,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
       setUserInfo({ id: 'anon_user' });
       router.refresh();
+
+      // Close the modal after logout
+      onClose();
     } catch (error) {
       console.error('Error logging out:', error);
       alert('로그아웃에 실패했습니다.');
