@@ -66,7 +66,7 @@ export function WorkoutSummaryModal({
               <div className="mb-4 rounded-full bg-green-100 p-3 text-green-600 dark:bg-green-900/30 dark:text-green-400">
                 <CheckCircle2 className="h-8 w-8" />
               </div>
-              
+
               <h2 className="mb-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">
                 Workout Complete!
               </h2>

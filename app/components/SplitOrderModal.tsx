@@ -126,11 +126,10 @@ export function SplitOrderModal({
                           setCurrentEditingIndex(index);
                           setIsSelectingWorkout(true);
                         }}
-                        className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-colors ${
-                          selectedOrder[index]
+                        className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-colors ${selectedOrder[index]
                             ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
                             : "border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950"
-                        }`}
+                          }`}
                       >
                         <div className="flex items-center gap-3">
                           <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-sm">
@@ -182,17 +181,15 @@ export function SplitOrderModal({
                             key={name}
                             onClick={() => handleSelectWorkout(name)}
                             disabled={selectedWorkoutName !== null}
-                            className={`w-full p-4 rounded-xl border-2 text-left transition-all duration-300 ${
-                              selectedWorkoutName === name
+                            className={`w-full p-4 rounded-xl border-2 text-left transition-all duration-300 ${selectedWorkoutName === name
                                 ? "border-blue-600 bg-blue-600 text-white scale-95"
                                 : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                            } disabled:opacity-50 disabled:cursor-not-allowed`}
+                              } disabled:opacity-50 disabled:cursor-not-allowed`}
                           >
-                            <span className={`font-medium ${
-                              selectedWorkoutName === name
+                            <span className={`font-medium ${selectedWorkoutName === name
                                 ? "text-white"
                                 : "text-zinc-900 dark:text-zinc-100"
-                            }`}>
+                              }`}>
                               {name}
                             </span>
                           </button>

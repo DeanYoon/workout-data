@@ -84,7 +84,7 @@ export function RestTimerModal({
                     }}
                   />
                 </svg>
-                
+
                 {/* Time Display */}
                 <div className="absolute flex flex-col items-center">
                   <span className="text-5xl font-mono font-bold tracking-tighter text-zinc-900 dark:text-zinc-50">
@@ -103,7 +103,7 @@ export function RestTimerModal({
                   <Minus className="h-5 w-5" />
                   <span className="text-xs font-semibold">-10s</span>
                 </button>
-                
+
                 <button
                   onClick={() => onAddSeconds(10)}
                   className="flex flex-col items-center gap-1 rounded-2xl bg-zinc-100 p-3 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 transition-colors"

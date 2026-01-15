@@ -118,11 +118,11 @@ export function AddExerciseModal({ isOpen, onClose, onAdd }: AddExerciseModalPro
               ))}
 
               {!searchTerm && existingExercises.length > 0 && (
-                 <div className="px-4 py-2 text-xs font-medium text-zinc-500 uppercase tracking-wide">
-                    Suggestions
-                 </div>
+                <div className="px-4 py-2 text-xs font-medium text-zinc-500 uppercase tracking-wide">
+                  Suggestions
+                </div>
               )}
-               {!searchTerm && existingExercises.slice(0, 10).map((name) => (
+              {!searchTerm && existingExercises.slice(0, 10).map((name) => (
                 <button
                   key={`suggestion-${name}`}
                   onClick={() => handleSelect(name)}
