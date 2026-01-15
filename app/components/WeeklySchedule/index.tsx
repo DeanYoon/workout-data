@@ -33,6 +33,11 @@ export function WeeklySchedule({ splitOrder, weekWorkouts, allWorkouts }: Weekly
   // Handle click outside to close
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      // Don't close if WorkoutDetailModal is open
+      if (selectedDate) {
+        return;
+      }
+
       // Don't close if clicking on the modal
       if (modalRef.current && modalRef.current.contains(event.target as Node)) {
         return;
@@ -47,7 +52,7 @@ export function WeeklySchedule({ splitOrder, weekWorkouts, allWorkouts }: Weekly
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [isExpanded]);
+  }, [isExpanded, selectedDate]);
 
   // Fetch workout for selected date
   const fetchWorkoutForDate = async (date: Date) => {
@@ -173,12 +178,6 @@ export function WeeklySchedule({ splitOrder, weekWorkouts, allWorkouts }: Weekly
       if (hasWorkout) {
         displayWorkoutName = workoutName;
         displayWorkoutNameShort = getWorkoutNameShort(workoutName);
-      } else if (isToday || isFuture) {
-        const scheduledWorkout = calculateWorkoutForDay(index);
-        if (scheduledWorkout) {
-          displayWorkoutName = scheduledWorkout;
-          displayWorkoutNameShort = getWorkoutNameShort(scheduledWorkout);
-        }
       }
 
       return {
@@ -209,11 +208,10 @@ export function WeeklySchedule({ splitOrder, weekWorkouts, allWorkouts }: Weekly
 
       <div
         ref={calendarRef}
-        className={`mb-4 rounded-2xl bg-zinc-100 dark:bg-zinc-900 transition-all duration-300 ${
-          isExpanded
+        className={`mb-4 rounded-2xl bg-zinc-100 dark:bg-zinc-900 transition-all duration-300 ${isExpanded
             ? "fixed inset-x-4 top-20 bottom-20 z-50 overflow-y-auto p-4"
             : "p-4"
-        }`}
+          }`}
       >
         {!isExpanded ? (
           <WeeklyView schedule={schedule} onExpand={() => setIsExpanded(true)} />

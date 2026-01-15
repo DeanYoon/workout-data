@@ -26,14 +26,17 @@ export function WorkoutDetailModal({
     <>
       <div
         className="fixed inset-0 bg-black/50 z-[60]"
-        onClick={onClose}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
       />
       <div
         ref={modalRef}
-        className="fixed inset-x-4 bottom-4 z-[70] bg-white dark:bg-zinc-900 rounded-2xl p-4 max-h-[50vh] overflow-y-auto"
+        className="fixed inset-x-4 bottom-4 z-[70] bg-white dark:bg-zinc-900 rounded-2xl max-h-[50vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between p-4 pb-3 flex-shrink-0 border-b border-zinc-200 dark:border-zinc-800">
           <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">
             {format(selectedDate, "yyyy년 M월 d일 (E)", { locale: ko })}
           </h3>
@@ -45,17 +48,19 @@ export function WorkoutDetailModal({
           </button>
         </div>
 
-        {isLoadingWorkout ? (
-          <div className="flex items-center justify-center py-6">
-            <div className="text-sm text-zinc-600 dark:text-zinc-400">로딩 중...</div>
-          </div>
-        ) : selectedWorkout ? (
-          <WorkoutDetailView workout={selectedWorkout} showStatus={true} variant="modal" />
-        ) : (
-          <div className="rounded-xl bg-zinc-50 dark:bg-zinc-800 p-4 text-center text-zinc-600 dark:text-zinc-400">
-            이 날 운동 기록이 없습니다
-          </div>
-        )}
+        <div className="overflow-y-auto p-4 pt-3">
+          {isLoadingWorkout ? (
+            <div className="flex items-center justify-center py-6">
+              <div className="text-sm text-zinc-600 dark:text-zinc-400">로딩 중...</div>
+            </div>
+          ) : selectedWorkout ? (
+            <WorkoutDetailView workout={selectedWorkout} showStatus={true} variant="modal" />
+          ) : (
+            <div className="rounded-xl bg-zinc-50 dark:bg-zinc-800 p-4 text-center text-zinc-600 dark:text-zinc-400">
+              이 날 운동 기록이 없습니다
+            </div>
+          )}
+        </div>
       </div>
     </>
   );
