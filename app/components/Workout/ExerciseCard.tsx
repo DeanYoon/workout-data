@@ -1,8 +1,8 @@
 "use client";
 
-import { Check, Plus, Trash2, X } from "lucide-react";
+import { Check, Plus, X } from "lucide-react";
 import { motion, useMotionValue, useTransform, animate, PanInfo } from "framer-motion";
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { DeleteConfirmModal } from "./DeleteConfirmModal";
 
 export interface ExerciseSet {
@@ -38,7 +38,6 @@ interface ExerciseSetRowProps {
 function ExerciseSetRow({ set, index, exerciseId, onUpdateSet, onRemoveSet }: ExerciseSetRowProps) {
   const x = useMotionValue(0);
   const [isDeleteMode, setIsDeleteMode] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   // Swipe Logic
   const handlePan = (event: Event, info: PanInfo) => {
@@ -150,32 +149,17 @@ function ExerciseSetRow({ set, index, exerciseId, onUpdateSet, onRemoveSet }: Ex
               scale: deleteScale,
               pointerEvents: deletePointerEvents,
             }}
-            onClick={() => setIsDeleteModalOpen(true)}
+            onClick={() => {
+              onRemoveSet(exerciseId, set.id);
+              setIsDeleteMode(false);
+              animate(x, 0, { type: "spring", stiffness: 400, damping: 30 });
+            }}
             className="absolute inset-0 flex items-center justify-center rounded-md bg-red-500 text-white shadow-sm hover:bg-red-600"
           >
             <X className="h-4 w-4" />
           </motion.button>
         </div>
       </motion.div>
-
-      <DeleteConfirmModal
-        isOpen={isDeleteModalOpen}
-        title="Delete Set?"
-        message="Are you sure you want to remove this set?"
-        confirmText="Delete"
-        cancelText="Cancel"
-        onConfirm={() => {
-          onRemoveSet(exerciseId, set.id);
-          setIsDeleteModalOpen(false);
-          setIsDeleteMode(false);
-          animate(x, 0, { type: "spring", stiffness: 400, damping: 30 });
-        }}
-        onCancel={() => {
-          setIsDeleteModalOpen(false);
-          setIsDeleteMode(false);
-          animate(x, 0, { type: "spring", stiffness: 400, damping: 30 });
-        }}
-      />
     </div>
   );
 }

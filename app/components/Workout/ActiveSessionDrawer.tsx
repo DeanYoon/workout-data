@@ -191,20 +191,90 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
   };
 
   const handleAddExercise = (name: string) => {
-    const newExercise: ExerciseItem = {
-      id: crypto.randomUUID(),
-      name,
-      sets: [
+    // Load most recent sets for this exercise (if any) and use as template
+    (async () => {
+      let templateSets: ExerciseSet[] = [
         {
           id: crypto.randomUUID(),
           weight: 0,
           reps: 0,
           isCompleted: false,
         },
-      ],
-    };
-    setExercises((prev) => [...prev, newExercise]);
-    setIsAddModalOpen(false);
+      ];
+
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        const userId = user?.id || "anon_user";
+
+        const { data: workoutsData, error: workoutsError } = await supabase
+          .from("workouts")
+          .select(
+            `
+            id,
+            start_time,
+            exercises (
+              id,
+              name,
+              order,
+              sets (
+                weight,
+                reps,
+                order
+              )
+            )
+          `
+          )
+          .eq("user_id", userId)
+          .eq("is_disabled", false)
+          .order("start_time", { ascending: false })
+          .limit(20);
+
+        if (workoutsError) {
+          throw workoutsError;
+        }
+
+        if (workoutsData && workoutsData.length > 0) {
+          // Find the most recent workout that contains this exercise with at least one set
+          const matchingWorkout = workoutsData.find((workout: any) =>
+            workout.exercises?.some(
+              (ex: any) => ex.name === name && ex.sets && ex.sets.length > 0
+            )
+          );
+
+          if (matchingWorkout) {
+            const exercise = matchingWorkout.exercises.find(
+              (ex: any) => ex.name === name && ex.sets && ex.sets.length > 0
+            );
+
+            if (exercise) {
+              const sortedSets = [...exercise.sets].sort(
+                (a: any, b: any) => a.order - b.order
+              );
+
+              templateSets = sortedSets.map((set: any) => ({
+                id: crypto.randomUUID(), // generate new IDs to avoid collisions when saving
+                weight: set.weight ?? 0,
+                reps: set.reps ?? 0,
+                isCompleted: false,
+              }));
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load previous exercise sets:", error);
+      }
+
+      const newExercise: ExerciseItem = {
+        id: crypto.randomUUID(),
+        name,
+        sets: templateSets,
+      };
+
+      setExercises((prev) => [...prev, newExercise]);
+      setIsAddModalOpen(false);
+    })();
   };
 
   const handleRemoveExercise = (exerciseId: string) => {
