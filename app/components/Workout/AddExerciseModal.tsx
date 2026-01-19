@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Search, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { useUserStore } from "@/app/stores/useUserStore";
 
 interface AddExerciseModalProps {
   isOpen: boolean;
@@ -21,16 +22,36 @@ export function AddExerciseModal({ isOpen, onClose, onAdd }: AddExerciseModalPro
       const fetchExercises = async () => {
         setIsLoading(true);
         try {
+          const userId = await useUserStore.getState().getUserId();
+
+          // Get all exercises for this user, excluding disabled workouts
           const { data, error } = await supabase
             .from("exercises")
-            .select("name");
+            .select(`
+              name,
+              workouts!left (
+                is_disabled
+              )
+            `)
+            .eq("user_id", userId);
 
           if (error) throw error;
 
           if (data) {
-            // Unique names, case-insensitive logic handled by using Set with normalized strings if desired
-            // But for display we keep original casing.
-            const names = Array.from(new Set(data.map((e) => e.name))).sort();
+            // Filter by workout.is_disabled and extract unique exercise names
+            const filtered = data.filter((row: any) => {
+              const workout = row.workouts as { is_disabled: boolean } | null | undefined;
+              return workout == null || workout.is_disabled === false;
+            });
+
+            const nameSet = new Set<string>();
+            filtered.forEach((row: any) => {
+              if (row.name) {
+                nameSet.add(row.name);
+              }
+            });
+
+            const names = Array.from(nameSet).sort();
             setExistingExercises(names);
           }
         } catch (error) {
@@ -122,7 +143,7 @@ export function AddExerciseModal({ isOpen, onClose, onAdd }: AddExerciseModalPro
                   Suggestions
                 </div>
               )}
-              {!searchTerm && existingExercises.slice(0, 10).map((name) => (
+              {!searchTerm && existingExercises.map((name) => (
                 <button
                   key={`suggestion-${name}`}
                   onClick={() => handleSelect(name)}
