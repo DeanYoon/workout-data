@@ -1,0 +1,4 @@
+export { WorkoutHistoryCard } from './WorkoutHistoryCard';
+
+
+

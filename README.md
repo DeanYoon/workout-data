@@ -57,3 +57,6 @@ app/
 lib/
   └── supabase.ts     # Supabase 클라이언트 설정
 ```
+
+
+
