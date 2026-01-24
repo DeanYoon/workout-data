@@ -13,7 +13,6 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
-    "baseUrl": ".",
     "plugins": [
       {
         "name": "next"
@@ -24,11 +23,10 @@
       "@/types/*": ["./src/types/*"],
       "@/types": ["./src/types"],
       "@/lib/*": ["./src/lib/*"],
-      "@/lib": ["./src/lib"],
       "@/stores/*": ["./src/stores/*"],
       "@/stores": ["./src/stores"],
       "@/utils/*": ["./src/utils/*"],
-      "@/utils": ["./src/utils"],
+      "@/utils": ["./src/utils/index"],
       "@/services/*": ["./src/services/*"],
       "@/services": ["./src/services"],
       "@/components/*": ["./src/components/*"],
@@ -45,3 +43,6 @@
   ],
   "exclude": ["node_modules"]
 }
+
+
+

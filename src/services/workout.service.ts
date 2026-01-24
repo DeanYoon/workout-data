@@ -190,24 +190,13 @@ export async function deleteWorkout(workoutId: string): Promise<void> {
   if (error) throw error;
 }
 
-export interface RecentWorkoutWithExercises {
-  id: string;
-  start_time: string;
-  exercises: Array<{
-    id: string;
-    name: string;
-    order: number;
-    sets: Array<{ weight: number; reps: number; order: number }>;
-  }> | null;
-}
-
 /**
  * Get recent workouts with exercises for loading previous sets
  */
 export async function getRecentWorkoutsWithExercises(
   userId: string,
   limit: number = 20
-): Promise<RecentWorkoutWithExercises[]> {
+) {
   const { data, error } = await supabase
     .from('workouts')
     .select(`
@@ -230,7 +219,7 @@ export async function getRecentWorkoutsWithExercises(
     .limit(limit);
 
   if (error) throw error;
-  return (data || []) as RecentWorkoutWithExercises[];
+  return data || [];
 }
 
 /**

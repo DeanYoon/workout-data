@@ -5,6 +5,21 @@ import { useTranslation } from "react-i18next";
 import { Plus, X, Edit2 } from "lucide-react";
 import { format } from "date-fns";
 import { ko, enUS } from "date-fns/locale";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { AddExerciseModal } from "./AddExerciseModal";
 import { RestTimerModal } from "./RestTimerModal";
 import { WorkoutSummaryModal } from "./WorkoutSummaryModal";
@@ -33,6 +48,17 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
   const [workoutName, setWorkoutName] = useState("Workout");
   const [isEditingName, setIsEditingName] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const [isResting, setIsResting] = useState(false);
   const [restSecondsRemaining, setRestSecondsRemaining] = useState(60);
@@ -196,15 +222,15 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
         const workoutsData = await getRecentWorkoutsWithExercises(userId);
 
         if (workoutsData && workoutsData.length > 0) {
-          const matchingWorkout = workoutsData.find((workout) =>
+          const matchingWorkout = workoutsData.find((workout: any) =>
             workout.exercises?.some(
-              (ex) => ex.name === name && ex.sets && ex.sets.length > 0
+              (ex: any) => ex.name === name && ex.sets && ex.sets.length > 0
             )
           );
 
           if (matchingWorkout) {
-            const exercise = matchingWorkout.exercises?.find(
-              (ex) => ex.name === name && ex.sets && ex.sets.length > 0
+            const exercise = matchingWorkout.exercises.find(
+              (ex: any) => ex.name === name && ex.sets && ex.sets.length > 0
             );
 
             if (exercise) {
@@ -238,6 +264,18 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
 
   const handleRemoveExercise = (exerciseId: string) => {
     setExercises((prev) => prev.filter((ex) => ex.id !== exerciseId));
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setExercises((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
   };
 
   const handleAddSet = (exerciseId: string) => {
@@ -442,19 +480,30 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
               <p>{t('workout.tapAddExercise')}</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {exercises.map((exercise, index) => (
-                <ExerciseCard
-                  key={exercise.id}
-                  exercise={exercise}
-                  exerciseIndex={index}
-                  onRemove={handleRemoveExercise}
-                  onAddSet={handleAddSet}
-                  onRemoveSet={handleRemoveSet}
-                  onUpdateSet={handleUpdateSet}
-                />
-              ))}
-            </div>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={exercises.map((ex) => ex.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-4">
+                  {exercises.map((exercise, index) => (
+                    <ExerciseCard
+                      key={exercise.id}
+                      exercise={exercise}
+                      exerciseIndex={index}
+                      onRemove={handleRemoveExercise}
+                      onAddSet={handleAddSet}
+                      onRemoveSet={handleRemoveSet}
+                      onUpdateSet={handleUpdateSet}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
           )}
 
           <div className="mt-4">
