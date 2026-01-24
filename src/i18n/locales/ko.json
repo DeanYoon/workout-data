@@ -92,6 +92,7 @@
     "history": "이력",
     "metric": "지표",
     "maxWeight": "Max Weight",
+    "maxVolume": "Max Volume",
     "totalVolume": "Total Volume",
     "totalSets": "Total Sets",
     "noChartData": "아직 기록된 운동 데이터가 없습니다.",

@@ -1,25 +1,25 @@
 // Date utilities
 export {
-    getTodayDateString,
-    getWeekRange,
-    getTodayRange,
-    getWeekDays,
-    getDayLabel,
-    formatDateLong,
-    formatMonthYear,
-    formatShortWeekday,
-    isCacheValid,
-    format,
-    parseISO,
-    ko,
-    enUS,
-    type DateLocale,
+  getTodayDateString,
+  getWeekRange,
+  getTodayRange,
+  getWeekDays,
+  getDayLabel,
+  formatDateLong,
+  formatMonthYear,
+  formatShortWeekday,
+  isCacheValid,
+  format,
+  parseISO,
+  ko,
+  enUS,
+  type DateLocale,
 } from './date';
 
 // Format utilities
 export {
-    formatTime,
-    formatDuration,
-    formatDate,
-    getWorkoutNameShort,
+  formatTime,
+  formatDuration,
+  formatDate,
+  getWorkoutNameShort,
 } from './format';

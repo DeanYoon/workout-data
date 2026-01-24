@@ -4,11 +4,11 @@ import en from './locales/en.json';
 import ko from './locales/ko.json';
 
 i18n.use(initReactI18next).init({
-    resources: { en: { translation: en }, ko: { translation: ko } },
-    lng: 'en',
-    fallbackLng: 'en',
-    interpolation: { escapeValue: false },
-    react: { useSuspense: false },
+  resources: { en: { translation: en }, ko: { translation: ko } },
+  lng: 'en',
+  fallbackLng: 'en',
+  interpolation: { escapeValue: false },
+  react: { useSuspense: false },
 });
 
 export default i18n;

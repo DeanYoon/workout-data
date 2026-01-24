@@ -1,55 +1,57 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { AuthProvider, ThemeProvider, I18nProvider, BottomNavigation } from "@/components";
+import { AuthProvider, ThemeProvider, I18nProvider, BottomNavigation, ErrorBoundary } from "@/components";
 
 const geistSans = Geist({
-    variable: "--font-geist-sans",
-    subsets: ["latin"],
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
 });
 
 const geistMono = Geist_Mono({
-    variable: "--font-geist-mono",
-    subsets: ["latin"],
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-    title: "Fitness App",
-    description: "Track your workout and progress",
+  title: "Fitness App",
+  description: "Track your workout and progress",
 };
 
 export const viewport: Viewport = {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
-    children,
+  children,
 }: Readonly<{
-    children: React.ReactNode;
+  children: React.ReactNode;
 }>) {
-    return (
-        <html lang="en">
-            <body
-                className={`${geistSans.variable} ${geistMono.variable} antialiased bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100`}
-            >
-                <ThemeProvider>
-                    <I18nProvider>
-                        <AuthProvider>
-                            <div className="mx-auto min-h-screen max-w-md bg-white shadow-2xl dark:bg-black dark:shadow-zinc-900/20">
-                                <main className="min-h-screen pb-20">
-                                    {children}
-                                </main>
-                                <BottomNavigation />
-                            </div>
-                        </AuthProvider>
-                    </I18nProvider>
-                </ThemeProvider>
-            </body>
-        </html>
-    );
+  return (
+    <html lang="en">
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100`}
+      >
+        <ThemeProvider>
+          <I18nProvider>
+            <ErrorBoundary>
+              <AuthProvider>
+                <div className="mx-auto min-h-screen max-w-md bg-white shadow-2xl dark:bg-black dark:shadow-zinc-900/20">
+                <main className="min-h-screen pb-20">
+                  {children}
+                </main>
+                <BottomNavigation />
+              </div>
+              </AuthProvider>
+            </ErrorBoundary>
+          </I18nProvider>
+        </ThemeProvider>
+      </body>
+    </html>
+  );
 }
 
 

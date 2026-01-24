@@ -1,30 +1,30 @@
 export interface DateAnalytics {
-    date: string; // YYYY-MM-DD format
-    maxWeight: number;
-    totalVolume: number;
-    totalSets: number;
+  date: string; // YYYY-MM-DD format
+  maxWeight: number;
+  maxVolume: number;
+  totalVolume: number;
 }
 
 export interface WorkoutAnalyticsData {
-    [exerciseName: string]: DateAnalytics[];
+  [exerciseName: string]: DateAnalytics[];
 }
 
 export interface ExerciseSetHistory {
-    workoutId: string;
-    workoutDate: string;
-    setOrder: number;
-    weight: number;
-    reps: number;
+  workoutId: string;
+  workoutDate: string;
+  setOrder: number;
+  weight: number;
+  reps: number;
 }
 
 export interface ExerciseHistoryByWorkout {
-    workoutId: string;
-    workoutDate: string;
-    sets: Array<{
-        order: number;
-        weight: number;
-        reps: number;
-    }>;
+  workoutId: string;
+  workoutDate: string;
+  sets: Array<{
+    order: number;
+    weight: number;
+    reps: number;
+  }>;
 }
 
 

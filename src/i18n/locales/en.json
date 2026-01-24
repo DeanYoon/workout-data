@@ -92,6 +92,7 @@
     "history": "History",
     "metric": "Metric",
     "maxWeight": "Max Weight",
+    "maxVolume": "Max Volume",
     "totalVolume": "Total Volume",
     "totalSets": "Total Sets",
     "noChartData": "No workout data recorded yet.",
