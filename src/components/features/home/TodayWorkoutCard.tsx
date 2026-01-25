@@ -74,32 +74,38 @@ export function TodayWorkoutCard({ splitOrder, weekWorkouts, todayWorkout: initi
                     <span className="flex items-center gap-1"><Dumbbell className="h-3.5 w-3.5" />{r.total_weight.toLocaleString()}kg · {r.total_sets} {t('workout.sets')}</span>
                 </div>
 
-                {todayWorkoutDetail?.exercises && todayWorkoutDetail.exercises.length > 0 ? (
-                    <div className="max-h-[280px] overflow-y-auto space-y-3 pr-1 -mr-1">
-                        {todayWorkoutDetail.exercises.map((ex, exIdx) => {
-                            const sets = (ex.sets || []).filter((s) => s.is_completed);
-                            return (
-                                <div key={ex.id || exIdx} className="rounded-xl border border-zinc-700/60 bg-zinc-800/50 dark:bg-zinc-900/50 p-3">
+                {todayWorkoutDetail?.exercises && todayWorkoutDetail.exercises.length > 0 ? (() => {
+                    const exercisesWithCompletedSets = todayWorkoutDetail.exercises
+                        .map((ex, exIdx) => {
+                            const completedSets = (ex.sets || []).filter((s) => s.is_completed);
+                            return { ...ex, exIdx, completedSets };
+                        })
+                        .filter((ex) => ex.completedSets.length > 0);
+
+                    if (exercisesWithCompletedSets.length === 0) {
+                        return <p className="text-sm text-zinc-500 py-2">{t('home.today.noSets')}</p>;
+                    }
+
+                    return (
+                        <div className=" space-y-3 pr-1 -mr-1">
+                            {exercisesWithCompletedSets.map((ex) => (
+                                <div key={ex.id || ex.exIdx} className="rounded-xl border border-zinc-700/60 bg-zinc-800/50 dark:bg-zinc-900/50 p-3">
                                     <div className="text-sm font-semibold text-zinc-100 mb-2">
-                                        {exIdx + 1}. {ex.name}
+                                        {ex.exIdx + 1}. {ex.name}
                                     </div>
-                                    {sets.length > 0 ? (
-                                        <div className="space-y-1">
-                                            {sets.map((set, setIdx) => (
-                                                <div key={set.id || setIdx} className="flex justify-between text-sm text-zinc-400">
-                                                    <span>{t('workout.set')} {setIdx + 1}</span>
-                                                    <span className="font-medium text-zinc-200">{set.weight}kg × {set.reps} {t('workout.reps')}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <p className="text-xs text-zinc-500">{t('home.today.noSets')}</p>
-                                    )}
+                                    <div className="space-y-1">
+                                        {ex.completedSets.map((set, setIdx) => (
+                                            <div key={set.id || setIdx} className="flex justify-between text-sm text-zinc-400">
+                                                <span>{t('workout.set')} {setIdx + 1}</span>
+                                                <span className="font-medium text-zinc-200">{set.weight}kg × {set.reps} {t('workout.reps')}</span>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
-                            );
-                        })}
-                    </div>
-                ) : todayWorkoutDetail && (!todayWorkoutDetail.exercises || todayWorkoutDetail.exercises.length === 0) ? (
+                            ))}
+                        </div>
+                    );
+                })() : todayWorkoutDetail && (!todayWorkoutDetail.exercises || todayWorkoutDetail.exercises.length === 0) ? (
                     <p className="text-sm text-zinc-500 py-2">{t('home.today.noRecords')}</p>
                 ) : (
                     <p className="text-sm text-zinc-500 py-2">{t('home.today.loadDetailError')}</p>
