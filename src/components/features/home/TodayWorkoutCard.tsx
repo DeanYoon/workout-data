@@ -11,12 +11,13 @@ import type { WorkoutWithDetails } from "@/types/workout";
 interface TodayWorkoutCardProps {
     splitOrder: string[];
     weekWorkouts: Array<{ start_time: string; name: string | null }>;
+    allWorkouts: Array<{ start_time: string; name: string | null }>;
     todayWorkout: WorkoutSummary | null;
     todayWorkoutDetail: WorkoutWithDetails | null;
     onStartWorkout?: (workoutName: string) => void;
 }
 
-export function TodayWorkoutCard({ splitOrder, weekWorkouts, todayWorkout: initialTodayWorkout, todayWorkoutDetail, onStartWorkout }: TodayWorkoutCardProps) {
+export function TodayWorkoutCard({ splitOrder, weekWorkouts, allWorkouts, todayWorkout: initialTodayWorkout, todayWorkoutDetail, onStartWorkout }: TodayWorkoutCardProps) {
     const { t } = useTranslation();
     const language = useSettingsStore((s) => s.language);
     const [nextWorkoutName, setNextWorkoutName] = useState<string | null>(null);
@@ -34,7 +35,7 @@ export function TodayWorkoutCard({ splitOrder, weekWorkouts, todayWorkout: initi
         const mostRecent = initialTodayWorkout?.name
             ? initialTodayWorkout.name
             : (() => {
-                const sorted = [...weekWorkouts].sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime());
+                const sorted = [...allWorkouts].sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime());
                 return sorted[0]?.name ?? null;
             })();
         const nextIdx = splitOrder.length > 0 ? (splitOrder.indexOf(mostRecent ?? "") + 1) % splitOrder.length : -1;
@@ -46,7 +47,7 @@ export function TodayWorkoutCard({ splitOrder, weekWorkouts, todayWorkout: initi
             setNextWorkoutName(nextWorkout);
         }
         console.log("[TodayWorkoutCard] 가장 최근 운동:", mostRecent, "| 분할 운동 리스트:", splitOrder, "| 그다음 운동:", nextWorkout);
-    }, [initialTodayWorkout, weekWorkouts, splitOrder]);
+    }, [initialTodayWorkout, allWorkouts, splitOrder]);
 
     const handleStartWorkout = () => {
         if (!nextWorkoutName) return;
