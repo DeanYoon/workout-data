@@ -59,7 +59,7 @@ export const useWorkoutAnalyticsStore = create<WorkoutAnalyticsStore>((set, get)
           set({ isLoading: true, error: null });
         }
 
-        const analyticsData = await getWorkoutAnalytics();
+        const analyticsData = await getWorkoutAnalytics(userId);
 
         if (!analyticsData || analyticsData.length === 0) {
           set({ data: {}, isLoading: false, isLoaded: true });

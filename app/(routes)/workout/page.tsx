@@ -4,13 +4,14 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Play } from "lucide-react";
 import { WorkoutWithDetails } from "@/types/workout";
-import { useWorkoutHistoryStore } from "@/stores";
+import { useWorkoutHistoryStore, useUserStore } from "@/stores";
 import { formatDate, formatDuration } from "@/utils";
 import { deleteWorkout } from "@/services";
 import {
   WorkoutHistoryCard,
   ActiveSessionDrawer,
   WorkoutDetailDrawer,
+  LoginRequiredModal,
   type ExerciseItem,
 } from "@/components";
 
@@ -44,9 +45,16 @@ export default function WorkoutPage() {
   // Active session state props
   const [activeSessionInitialData, setActiveSessionInitialData] = useState<ExerciseItem[] | undefined>(undefined);
   const [activeSessionInitialName, setActiveSessionInitialName] = useState<string | undefined>(undefined);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   const handleDelete = async (id: string) => {
     try {
+      const userId = await useUserStore.getState().getUserId();
+      if (userId === 'anon_user') {
+        setIsLoginModalOpen(true);
+        return;
+      }
+
       await deleteWorkout(id);
 
       if (typeof window !== 'undefined') {
@@ -149,6 +157,11 @@ export default function WorkoutPage() {
         workout={selectedWorkout}
         onClose={() => setSelectedWorkout(null)}
         onStartRoutine={handleStartRoutine}
+      />
+
+      <LoginRequiredModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
       />
     </div>
   );

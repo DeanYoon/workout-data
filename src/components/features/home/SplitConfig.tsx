@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { SplitCountModal } from "./SplitCountModal";
 import { SplitOrderModal } from "./SplitOrderModal";
+import { LoginRequiredModal } from "@/components";
 import { useUserStore } from "@/stores";
 import { saveSplitCount as saveSplitCountService, saveSplitOrder as saveSplitOrderService } from "@/services";
 import { t } from "i18next";
@@ -23,6 +24,7 @@ export function SplitConfig({ splitConfig: initialSplitConfig, workoutNames: ini
   const [workoutNames, setWorkoutNames] = useState<string[]>(initialWorkoutNames);
   const [isCountModalOpen, setIsCountModalOpen] = useState(false);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   useEffect(() => {
     setSplitConfig(initialSplitConfig);
@@ -32,6 +34,12 @@ export function SplitConfig({ splitConfig: initialSplitConfig, workoutNames: ini
   const saveSplitCount = async (count: number) => {
     try {
       const userId = await useUserStore.getState().getUserId();
+      if (userId === 'anon_user') {
+        setIsCountModalOpen(false);
+        setIsLoginModalOpen(true);
+        return;
+      }
+
       await saveSplitCountService(userId, count);
 
       setSplitConfig({ split_count: count, split_order: [] });
@@ -51,6 +59,12 @@ export function SplitConfig({ splitConfig: initialSplitConfig, workoutNames: ini
   const saveSplitOrder = async (order: string[]) => {
     try {
       const userId = await useUserStore.getState().getUserId();
+      if (userId === 'anon_user') {
+        setIsOrderModalOpen(false);
+        setIsLoginModalOpen(true);
+        return;
+      }
+
       const splitCount = await saveSplitOrderService(userId, order);
 
       setSplitConfig({ split_count: splitCount, split_order: order });
@@ -165,6 +179,10 @@ export function SplitConfig({ splitConfig: initialSplitConfig, workoutNames: ini
         currentOrder={splitConfig.split_order}
         onSave={saveSplitOrder}
         onClose={() => setIsOrderModalOpen(false)}
+      />
+      <LoginRequiredModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
       />
     </>
   );

@@ -1,9 +1,14 @@
 import { supabase } from '@/lib/supabase';
+import { getAnonUserWeeklyGoal, getAnonUserSplitConfig, getAnonUserWorkoutSummaries } from '@/data/anonUserData';
 
 /**
  * Fetch weekly goal for a user
  */
 export async function getWeeklyGoal(userId: string): Promise<number | null> {
+  if (userId === 'anon_user') {
+    return getAnonUserWeeklyGoal();
+  }
+
   const { data, error } = await supabase
     .from('weekly_goals')
     .select('weekly_target')
@@ -35,6 +40,10 @@ export async function saveWeeklyGoal(userId: string, goal: number): Promise<void
  * Fetch split config for a user
  */
 export async function getSplitConfig(userId: string) {
+  if (userId === 'anon_user') {
+    return getAnonUserSplitConfig();
+  }
+
   const { data, error } = await supabase
     .from('split_config')
     .select('split_count, split_order')
@@ -106,6 +115,10 @@ export interface WorkoutSummary {
  * Fetch all workouts (id, start_time, end_time, name, total_weight, total_sets) for a user
  */
 export async function getAllWorkouts(userId: string): Promise<WorkoutSummary[]> {
+  if (userId === 'anon_user') {
+    return getAnonUserWorkoutSummaries();
+  }
+
   const { data, error } = await supabase
     .from('workouts')
     .select('id, start_time, end_time, name, total_weight, total_sets')

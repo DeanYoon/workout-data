@@ -25,6 +25,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const previousUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
+    const loadInitialData = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id || 'anon_user';
+      previousUserIdRef.current = userId;
+
+      // Load data for initial user (including anon_user)
+      await Promise.all([
+        fetchWorkoutHistory(),
+        fetchAnalytics(),
+        fetchHomeData(),
+        refreshProfile(),
+      ]);
+    };
+
+    loadInitialData();
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -39,6 +55,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         clearProfile();
         useUserStore.getState().clearUser();
         previousUserIdRef.current = null;
+        
+        // Load anon_user data after sign out
+        await Promise.all([
+          fetchWorkoutHistory(),
+          fetchAnalytics(),
+          fetchHomeData(),
+          refreshProfile(),
+        ]);
+        previousUserIdRef.current = 'anon_user';
       } else if (event === 'SIGNED_IN' && previousUserId !== currentUserId) {
         if (previousUserId !== null) {
           clearWorkoutHistory();
@@ -57,10 +82,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else if (event === 'TOKEN_REFRESHED' && previousUserId === currentUserId) {
         return;
       }
-    });
-
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      previousUserIdRef.current = user?.id || 'anon_user';
     });
 
     return () => subscription.unsubscribe();

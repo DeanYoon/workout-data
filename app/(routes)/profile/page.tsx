@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useProfileStore } from '@/stores';
+import { useProfileStore, useUserStore } from '@/stores';
 import { Edit2, Save, X, Settings, User, Calendar, Users, Ruler } from 'lucide-react';
-import { WeightChart, SettingsModal } from '@/components';
+import { WeightChart, SettingsModal, LoginRequiredModal } from '@/components';
 
 export default function ProfilePage() {
   const { t } = useTranslation();
@@ -19,6 +19,7 @@ export default function ProfilePage() {
   const [weightInput, setWeightInput] = useState('');
   const [isAddingWeight, setIsAddingWeight] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   useEffect(() => {
     // Only fetch if not already loaded
@@ -42,6 +43,13 @@ export default function ProfilePage() {
   }, [profile]);
 
   const handleSave = async () => {
+    const userId = await useUserStore.getState().getUserId();
+    if (userId === 'anon_user') {
+      setIsEditing(false);
+      setIsLoginModalOpen(true);
+      return;
+    }
+
     await updateProfile({
       name: formData.name || null,
       age: formData.age ? parseInt(formData.age) : null,
@@ -69,6 +77,14 @@ export default function ProfilePage() {
       alert(t('profile.enterValidWeight'));
       return;
     }
+
+    const userId = await useUserStore.getState().getUserId();
+    if (userId === 'anon_user') {
+      setIsAddingWeight(false);
+      setIsLoginModalOpen(true);
+      return;
+    }
+
     await addWeightRecord(weight);
     setWeightInput('');
     setIsAddingWeight(false);
@@ -311,6 +327,10 @@ export default function ProfilePage() {
       </div>
 
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      <LoginRequiredModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+      />
     </div>
   );
 }

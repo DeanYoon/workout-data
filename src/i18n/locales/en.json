@@ -167,6 +167,10 @@
     "infoPlaceholder": "Coming soon.",
     "count": "{{n}} items"
   },
+  "loginRequired": {
+    "title": "Login Required",
+    "message": "Please sign in to save your data. Sign in to keep your data safe."
+  },
   "modals": {
     "splitCountTitle": "Split count",
     "splitCountDesc": "How many days in your split? (1–7)",

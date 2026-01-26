@@ -18,7 +18,7 @@ import { useRouter } from 'next/navigation';
 import { getWorkoutsWithDetails, deleteWorkout } from '@/services';
 import { WorkoutWithDetails } from '@/types/workout';
 import { formatDate, formatDuration } from '@/utils';
-import { DeleteConfirmModal } from '@/components';
+import { DeleteConfirmModal, LoginRequiredModal } from '@/components';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -37,6 +37,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [isLoadingWorkouts, setIsLoadingWorkouts] = useState(false);
   const [expandedWorkoutId, setExpandedWorkoutId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const refreshWorkoutHistory = useWorkoutHistoryStore((state) => state.refreshWorkoutHistory);
 
   useEffect(() => {
@@ -64,6 +65,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const handleDeleteWorkout = async () => {
     if (!deleteTarget) return;
     try {
+      const userId = await useUserStore.getState().getUserId();
+      if (userId === 'anon_user') {
+        setDeleteTarget(null);
+        setIsLoginModalOpen(true);
+        return;
+      }
+
       await deleteWorkout(deleteTarget.id);
       setWorkouts((prev) => prev.filter((w) => w.id !== deleteTarget.id));
       setDeleteTarget(null);
@@ -157,11 +165,28 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       // Sign out from Supabase
       await supabase.auth.signOut();
 
-      setUserInfo({ id: 'anon_user' });
-      router.refresh();
+      // Clear all cookies
+      if (typeof document !== 'undefined') {
+        document.cookie.split(";").forEach((c) => {
+          const eqPos = c.indexOf("=");
+          const name = eqPos > -1 ? c.substr(0, eqPos).trim() : c.trim();
+          // Clear cookies for current domain and parent domain
+          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`;
+          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.${window.location.hostname}`;
+        });
+        
+        // Clear localStorage
+        localStorage.clear();
+        
+        // Clear sessionStorage
+        sessionStorage.clear();
+      }
 
-      // Close the modal after logout
-      onClose();
+      setUserInfo({ id: 'anon_user' });
+      
+      // Force reload to clear all state and load anon_user data
+      window.location.href = '/';
     } catch (error) {
       console.error('Error logging out:', error);
       alert(t('settings.logoutFailed'));
@@ -519,6 +544,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         cancelText={t('common.cancel')}
         onConfirm={handleDeleteWorkout}
         onCancel={() => setDeleteTarget(null)}
+      />
+
+      <LoginRequiredModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
       />
     </>
   );

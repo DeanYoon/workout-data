@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { WeeklyGoalModal } from "./WeeklyGoalModal";
+import { LoginRequiredModal } from "@/components";
 import { useUserStore } from "@/stores";
 import { saveWeeklyGoal as saveWeeklyGoalService } from "@/services";
 
@@ -16,6 +17,7 @@ export function WeeklyGoalProgress({ weeklyGoal: initialWeeklyGoal, weekWorkouts
     const { t } = useTranslation();
     const [weeklyGoal, setWeeklyGoal] = useState<number | null>(initialWeeklyGoal);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
     const currentWeekWorkouts = new Set(
         weekWorkouts.map((workout) => {
@@ -27,6 +29,12 @@ export function WeeklyGoalProgress({ weeklyGoal: initialWeeklyGoal, weekWorkouts
     const saveWeeklyGoal = async (goal: number) => {
         try {
             const userId = await useUserStore.getState().getUserId();
+            if (userId === 'anon_user') {
+                setIsModalOpen(false);
+                setIsLoginModalOpen(true);
+                return;
+            }
+
             await saveWeeklyGoalService(userId, goal);
 
             setWeeklyGoal(goal);
@@ -95,6 +103,10 @@ export function WeeklyGoalProgress({ weeklyGoal: initialWeeklyGoal, weekWorkouts
                 currentGoal={weeklyGoal}
                 onSave={saveWeeklyGoal}
                 onClose={() => setIsModalOpen(false)}
+            />
+            <LoginRequiredModal
+                isOpen={isLoginModalOpen}
+                onClose={() => setIsLoginModalOpen(false)}
             />
         </>
     );

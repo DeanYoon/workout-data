@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
 
 interface WeeklyGoalModalProps {
@@ -17,6 +18,7 @@ export function WeeklyGoalModal({
     onSave,
     onClose,
 }: WeeklyGoalModalProps) {
+    const { t } = useTranslation();
     const [selectedGoal, setSelectedGoal] = useState<number>(currentGoal || 3);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -68,16 +70,16 @@ export function WeeklyGoalModal({
 
                         <div className="flex flex-col">
                             <h2 className="mb-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-                                주간 목표 설정
+                                {t('modals.weeklyGoalTitle')}
                             </h2>
                             <p className="mb-6 text-sm text-zinc-500 dark:text-zinc-400">
-                                주당 운동 횟수를 선택하세요 (최대 7회)
+                                {t('modals.weeklyGoalDesc')}
                             </p>
 
                             {/* Select Input */}
                             <div className="mb-6">
                                 <label htmlFor="weeklyGoal" className="sr-only">
-                                    주간 목표
+                                    {t('modals.weeklyGoalLabel')}
                                 </label>
                                 <select
                                     id="weeklyGoal"
@@ -87,7 +89,7 @@ export function WeeklyGoalModal({
                                 >
                                     {Array.from({ length: 7 }, (_, i) => i + 1).map((num) => (
                                         <option key={num} value={num}>
-                                            {num}회
+                                            {t('modals.timesOption', { n: num })}
                                         </option>
                                     ))}
                                 </select>
@@ -99,14 +101,14 @@ export function WeeklyGoalModal({
                                     disabled={isSaving}
                                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3.5 font-bold text-white transition-colors hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed"
                                 >
-                                    {isSaving ? "저장 중..." : "저장"}
+                                    {isSaving ? t('modals.saving') : t('modals.save')}
                                 </button>
                                 <button
                                     onClick={onClose}
                                     disabled={isSaving}
                                     className="w-full rounded-xl py-3.5 font-medium text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300 disabled:opacity-50"
                                 >
-                                    취소
+                                    {t('modals.cancel')}
                                 </button>
                             </div>
                         </div>
