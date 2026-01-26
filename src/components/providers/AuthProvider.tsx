@@ -3,101 +3,101 @@
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import {
-  useWorkoutHistoryStore,
-  useWorkoutAnalyticsStore,
-  useExerciseHistoryStore,
-  useHomeDataStore,
-  useProfileStore,
-  useUserStore,
+    useWorkoutHistoryStore,
+    useWorkoutAnalyticsStore,
+    useExerciseHistoryStore,
+    useHomeDataStore,
+    useProfileStore,
+    useUserStore,
 } from '@/stores';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const clearWorkoutHistory = useWorkoutHistoryStore((state) => state.clearWorkoutHistory);
-  const clearAnalytics = useWorkoutAnalyticsStore((state) => state.clearAnalytics);
-  const clearExerciseCache = useExerciseHistoryStore((state) => state.clearCache);
-  const clearHomeData = useHomeDataStore((state) => state.clearHomeData);
-  const clearProfile = useProfileStore((state) => state.clearProfile);
-  const fetchWorkoutHistory = useWorkoutHistoryStore((state) => state.fetchWorkoutHistory);
-  const fetchAnalytics = useWorkoutAnalyticsStore((state) => state.fetchAnalytics);
-  const fetchHomeData = useHomeDataStore((state) => state.fetchHomeData);
-  const refreshProfile = useProfileStore((state) => state.refreshProfile);
+    const clearWorkoutHistory = useWorkoutHistoryStore((state) => state.clearWorkoutHistory);
+    const clearAnalytics = useWorkoutAnalyticsStore((state) => state.clearAnalytics);
+    const clearExerciseCache = useExerciseHistoryStore((state) => state.clearCache);
+    const clearHomeData = useHomeDataStore((state) => state.clearHomeData);
+    const clearProfile = useProfileStore((state) => state.clearProfile);
+    const fetchWorkoutHistory = useWorkoutHistoryStore((state) => state.fetchWorkoutHistory);
+    const fetchAnalytics = useWorkoutAnalyticsStore((state) => state.fetchAnalytics);
+    const fetchHomeData = useHomeDataStore((state) => state.fetchHomeData);
+    const refreshProfile = useProfileStore((state) => state.refreshProfile);
 
-  const previousUserIdRef = useRef<string | null>(null);
+    const previousUserIdRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    const loadInitialData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      const userId = user?.id || 'anon_user';
-      previousUserIdRef.current = userId;
+    useEffect(() => {
+        const loadInitialData = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            const userId = user?.id || 'anon_user';
+            previousUserIdRef.current = userId;
 
-      // Load data for initial user (including anon_user)
-      await Promise.all([
-        fetchWorkoutHistory(),
-        fetchAnalytics(),
-        fetchHomeData(),
-        refreshProfile(),
-      ]);
-    };
+            // Load data for initial user (including anon_user)
+            await Promise.all([
+                fetchWorkoutHistory(),
+                fetchAnalytics(),
+                fetchHomeData(),
+                refreshProfile(),
+            ]);
+        };
 
-    loadInitialData();
+        loadInitialData();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      const currentUserId = session?.user?.id || 'anon_user';
-      const previousUserId = previousUserIdRef.current;
+        const {
+            data: { subscription },
+        } = supabase.auth.onAuthStateChange(async (event, session) => {
+            const currentUserId = session?.user?.id || 'anon_user';
+            const previousUserId = previousUserIdRef.current;
 
-      if (event === 'SIGNED_OUT') {
-        clearWorkoutHistory();
-        clearAnalytics();
-        clearExerciseCache();
-        clearHomeData();
-        clearProfile();
-        useUserStore.getState().clearUser();
-        previousUserIdRef.current = null;
-        
-        // Load anon_user data after sign out
-        await Promise.all([
-          fetchWorkoutHistory(),
-          fetchAnalytics(),
-          fetchHomeData(),
-          refreshProfile(),
-        ]);
-        previousUserIdRef.current = 'anon_user';
-      } else if (event === 'SIGNED_IN' && previousUserId !== currentUserId) {
-        if (previousUserId !== null) {
-          clearWorkoutHistory();
-          clearAnalytics();
-          clearExerciseCache();
-          clearHomeData();
-          clearProfile();
-        }
-        await Promise.all([
-          fetchWorkoutHistory(),
-          fetchAnalytics(),
-          fetchHomeData(),
-          refreshProfile(),
-        ]);
-        previousUserIdRef.current = currentUserId;
-      } else if (event === 'TOKEN_REFRESHED' && previousUserId === currentUserId) {
-        return;
-      }
-    });
+            if (event === 'SIGNED_OUT') {
+                clearWorkoutHistory();
+                clearAnalytics();
+                clearExerciseCache();
+                clearHomeData();
+                clearProfile();
+                useUserStore.getState().clearUser();
+                previousUserIdRef.current = null;
 
-    return () => subscription.unsubscribe();
-  }, [
-    clearWorkoutHistory,
-    clearAnalytics,
-    clearExerciseCache,
-    clearHomeData,
-    clearProfile,
-    fetchWorkoutHistory,
-    fetchAnalytics,
-    fetchHomeData,
-    refreshProfile,
-  ]);
+                // Load anon_user data after sign out
+                await Promise.all([
+                    fetchWorkoutHistory(),
+                    fetchAnalytics(),
+                    fetchHomeData(),
+                    refreshProfile(),
+                ]);
+                previousUserIdRef.current = 'anon_user';
+            } else if (event === 'SIGNED_IN' && previousUserId !== currentUserId) {
+                if (previousUserId !== null) {
+                    clearWorkoutHistory();
+                    clearAnalytics();
+                    clearExerciseCache();
+                    clearHomeData();
+                    clearProfile();
+                }
+                await Promise.all([
+                    fetchWorkoutHistory(),
+                    fetchAnalytics(),
+                    fetchHomeData(),
+                    refreshProfile(),
+                ]);
+                previousUserIdRef.current = currentUserId;
+            } else if (event === 'TOKEN_REFRESHED' && previousUserId === currentUserId) {
+                return;
+            }
+        });
 
-  return <>{children}</>;
+        return () => subscription.unsubscribe();
+    }, [
+        clearWorkoutHistory,
+        clearAnalytics,
+        clearExerciseCache,
+        clearHomeData,
+        clearProfile,
+        fetchWorkoutHistory,
+        fetchAnalytics,
+        fetchHomeData,
+        refreshProfile,
+    ]);
+
+    return <>{children}</>;
 }
 
 

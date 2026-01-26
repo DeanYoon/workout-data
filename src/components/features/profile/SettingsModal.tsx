@@ -175,16 +175,16 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`;
           document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.${window.location.hostname}`;
         });
-        
+
         // Clear localStorage
         localStorage.clear();
-        
+
         // Clear sessionStorage
         sessionStorage.clear();
       }
 
       setUserInfo({ id: 'anon_user' });
-      
+
       // Force reload to clear all state and load anon_user data
       window.location.href = '/';
     } catch (error) {
@@ -470,8 +470,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         <button
           onClick={userInfo?.id === 'anon_user' ? handleLogin : handleLogout}
           className={`w-full flex items-center justify-center gap-3 p-4 rounded-xl transition-colors font-medium ${userInfo?.id === 'anon_user'
-              ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-500/20'
-              : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30'
+            ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-500/20'
+            : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30'
             }`}
         >
           {userInfo?.id === 'anon_user' ? (
