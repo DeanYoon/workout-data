@@ -31,7 +31,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [activeSection, setActiveSection] = useState<'main' | 'theme' | 'language' | 'data' | 'account' | 'info'>('main');
   const [userInfo, setUserInfo] = useState<{ id: string; email?: string; fullName?: string } | null>(null);
   const router = useRouter();
-  
+
   // Data management state
   const [workouts, setWorkouts] = useState<WorkoutWithDetails[]>([]);
   const [isLoadingWorkouts, setIsLoadingWorkouts] = useState(false);
@@ -183,7 +183,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   const renderMainMenu = () => (
     <div className="space-y-2">
-   
+
 
       <button
         onClick={() => setActiveSection('language')}
@@ -215,8 +215,12 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       >
         <User className="h-5 w-5 text-zinc-600 dark:text-zinc-400" />
         <div className="flex-1">
-          <div className="font-medium text-zinc-900 dark:text-zinc-100">{t('settings.account')}</div>
-          <div className="text-sm text-zinc-500 dark:text-zinc-400">{t('settings.accountDesc')}</div>
+          <div className="font-medium text-zinc-900 dark:text-zinc-100">
+            {userInfo?.id === 'anon_user' ? t('settings.signIn') : t('settings.account')}
+          </div>
+          <div className="text-sm text-zinc-500 dark:text-zinc-400">
+            {userInfo?.id === 'anon_user' ? t('settings.signInGmail') : t('settings.accountDesc')}
+          </div>
         </div>
       </button>
 
@@ -408,38 +412,42 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       </div>
 
       <div className="space-y-4">
-        {/* Full Name */}
-        {userInfo?.fullName && (
-          <div className="rounded-xl bg-zinc-50 dark:bg-zinc-800 p-4">
-            <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-2">
-              {t('settings.fullName')}
-            </div>
-            <div className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-              {userInfo.fullName}
-            </div>
-          </div>
-        )}
+        {/* Show user info only when logged in */}
+        {userInfo?.id !== 'anon_user' && (
+          <>
+            {/* Full Name */}
+            {userInfo?.fullName && (
+              <div className="rounded-xl bg-zinc-50 dark:bg-zinc-800 p-4">
+                <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-2">
+                  {t('settings.fullName')}
+                </div>
+                <div className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+                  {userInfo.fullName}
+                </div>
+              </div>
+            )}
 
-        {/* Email */}
-        {userInfo?.email && (
-          <div className="rounded-xl bg-zinc-50 dark:bg-zinc-800 p-4">
-            <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-2">
-              {t('settings.email')}
-            </div>
-            <div className="text-base font-semibold text-zinc-900 dark:text-zinc-100 break-all">
-              {userInfo.email}
-            </div>
-          </div>
+            {/* Email */}
+            {userInfo?.email && (
+              <div className="rounded-xl bg-zinc-50 dark:bg-zinc-800 p-4">
+                <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-2">
+                  {t('settings.email')}
+                </div>
+                <div className="text-base font-semibold text-zinc-900 dark:text-zinc-100 break-all">
+                  {userInfo.email}
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {/* Sign in / Sign out button (depends on auth state) */}
         <button
           onClick={userInfo?.id === 'anon_user' ? handleLogin : handleLogout}
-          className={`w-full flex items-center justify-center gap-3 p-4 rounded-xl transition-colors font-medium ${
-            userInfo?.id === 'anon_user'
+          className={`w-full flex items-center justify-center gap-3 p-4 rounded-xl transition-colors font-medium ${userInfo?.id === 'anon_user'
               ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-500/20'
               : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30'
-          }`}
+            }`}
         >
           {userInfo?.id === 'anon_user' ? (
             <>

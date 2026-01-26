@@ -160,6 +160,7 @@
     "logoutFailed": "로그아웃에 실패했습니다.",
     "fullName": "이름",
     "email": "이메일",
+    "signIn": "로그인",
     "signInGmail": "Gmail로 로그인",
     "signInPrompt": "로그인하여 데이터를 안전하게 보관하세요.",
     "signOut": "로그아웃",

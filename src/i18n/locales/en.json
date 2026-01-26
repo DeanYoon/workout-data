@@ -160,6 +160,7 @@
     "logoutFailed": "Logout failed.",
     "fullName": "Full name",
     "email": "Email",
+    "signIn": "Sign in",
     "signInGmail": "Sign in with Gmail",
     "signInPrompt": "Sign in to keep your data safe.",
     "signOut": "Sign out",
