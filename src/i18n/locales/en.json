@@ -160,11 +160,16 @@
     "logoutFailed": "Logout failed.",
     "fullName": "Full name",
     "email": "Email",
+    "signIn": "Sign in",
     "signInGmail": "Sign in with Gmail",
     "signInPrompt": "Sign in to keep your data safe.",
     "signOut": "Sign out",
     "infoPlaceholder": "Coming soon.",
     "count": "{{n}} items"
+  },
+  "loginRequired": {
+    "title": "Login Required",
+    "message": "Please sign in to save your data. Sign in to keep your data safe."
   },
   "modals": {
     "splitCountTitle": "Split count",
@@ -193,7 +198,22 @@
     "cancel": "Cancel",
     "deleteTitle": "Delete?",
     "save": "Save",
-    "add": "Add"
+    "add": "Add",
+    "later": "Later"
+  },
+  "pwa": {
+    "install": "Install App",
+    "installTitle": "Install App",
+    "installSubtitle": "Add to home screen for faster access",
+    "installNow": "Install Now",
+    "installBenefits": "Installing the app allows you to use it offline and experience faster performance.",
+    "iosInstructions": "How to install the app on iOS:",
+    "iosStep1": "Tap the share button",
+    "iosStep1End": "at the bottom of Safari browser",
+    "iosStep2": "Scroll down and find the \"Add to Home Screen\"",
+    "iosStep2End": "option",
+    "iosStep3": "Tap \"Add\" to complete the installation",
+    "iosGotIt": "Got it"
   }
 }
 

@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { WorkoutWithDetails } from '@/types/workout';
+import { getAnonUserWorkouts } from '@/data/anonUserData';
 
 export interface SaveWorkoutData {
   id: string;
@@ -28,6 +29,12 @@ export async function getWorkoutByName(
   userId: string,
   workoutName: string
 ): Promise<WorkoutWithDetails | null> {
+  if (userId === 'anon_user') {
+    const workouts = getAnonUserWorkouts();
+    const workout = workouts.find((w) => w.name === workoutName);
+    return workout || null;
+  }
+
   const { data, error } = await supabase
     .from('workouts')
     .select(`
@@ -68,6 +75,11 @@ export async function getWorkoutById(
   userId: string,
   workoutId: string
 ): Promise<WorkoutWithDetails | null> {
+  if (userId === 'anon_user') {
+    const workouts = getAnonUserWorkouts();
+    return workouts.find((w) => w.id === workoutId) || null;
+  }
+
   const { data, error } = await supabase
     .from('workouts')
     .select(`
@@ -102,6 +114,10 @@ export async function getWorkoutById(
 export async function getWorkoutsWithDetails(
   userId: string
 ): Promise<WorkoutWithDetails[]> {
+  if (userId === 'anon_user') {
+    return getAnonUserWorkouts();
+  }
+
   const { data, error } = await supabase
     .from('workouts')
     .select(`
@@ -197,6 +213,24 @@ export async function getRecentWorkoutsWithExercises(
   userId: string,
   limit: number = 20
 ) {
+  if (userId === 'anon_user') {
+    const workouts = getAnonUserWorkouts();
+    return workouts.slice(0, limit).map((w) => ({
+      id: w.id,
+      start_time: w.start_time,
+      exercises: w.exercises.map((e) => ({
+        id: e.id,
+        name: e.name,
+        order: e.order,
+        sets: e.sets.map((s) => ({
+          weight: s.weight,
+          reps: s.reps,
+          order: s.order,
+        })),
+      })),
+    }));
+  }
+
   const { data, error } = await supabase
     .from('workouts')
     .select(`
@@ -229,6 +263,21 @@ export async function getWorkoutForDate(
   userId: string,
   date: Date
 ): Promise<WorkoutWithDetails | null> {
+  if (userId === 'anon_user') {
+    const workouts = getAnonUserWorkouts();
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    const workout = workouts.find((w) => {
+      const workoutDate = new Date(w.start_time);
+      return workoutDate >= startOfDay && workoutDate <= endOfDay;
+    });
+    
+    return workout || null;
+  }
+
   const startOfDay = new Date(date);
   startOfDay.setHours(0, 0, 0, 0);
   const endOfDay = new Date(date);
@@ -272,6 +321,17 @@ export async function getWorkoutForDate(
  * Get unique exercise names for a user
  */
 export async function getExerciseNames(userId: string): Promise<string[]> {
+  if (userId === 'anon_user') {
+    const workouts = getAnonUserWorkouts();
+    const nameSet = new Set<string>();
+    workouts.forEach((workout) => {
+      workout.exercises.forEach((exercise) => {
+        nameSet.add(exercise.name);
+      });
+    });
+    return Array.from(nameSet).sort();
+  }
+
   const { data, error } = await supabase
     .from('exercises')
     .select(`

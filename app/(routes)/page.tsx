@@ -97,6 +97,7 @@ export default function Home() {
           <TodayWorkoutCard
             splitOrder={homeData.splitConfig?.split_order ?? []}
             weekWorkouts={homeData.weekWorkouts}
+            allWorkouts={homeData.allWorkouts}
             todayWorkout={homeData.todayWorkout}
             todayWorkoutDetail={homeData.todayWorkoutDetail}
             onStartWorkout={handleStartWorkout}

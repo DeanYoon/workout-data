@@ -1,10 +1,15 @@
 import { supabase } from '@/lib/supabase';
 import { UserProfile, WeightRecord } from '@/types/profile';
+import { getAnonUserProfile, getAnonUserWeightRecords } from '@/data/anonUserData';
 
 /**
  * Fetch user profile
  */
 export async function getProfile(userId: string): Promise<UserProfile | null> {
+  if (userId === 'anon_user') {
+    return getAnonUserProfile();
+  }
+
   const { data, error } = await supabase
     .from('user_profiles')
     .select('*')
@@ -63,6 +68,10 @@ export async function getWeightRecords(
   userId: string,
   limit: number = 100
 ): Promise<WeightRecord[]> {
+  if (userId === 'anon_user') {
+    return getAnonUserWeightRecords().slice(0, limit);
+  }
+
   const { data, error } = await supabase
     .from('weight_records')
     .select('*')

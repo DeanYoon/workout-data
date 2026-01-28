@@ -23,7 +23,7 @@ import {
 import { AddExerciseModal } from "./AddExerciseModal";
 import { RestTimerModal } from "./RestTimerModal";
 import { WorkoutSummaryModal } from "./WorkoutSummaryModal";
-import { DeleteConfirmModal } from "@/components";
+import { DeleteConfirmModal, LoginRequiredModal } from "@/components";
 import { ExerciseCard, ExerciseItem, ExerciseSet } from "./ExerciseCard";
 import { formatTime } from "@/utils";
 import { useUserStore, useSettingsStore } from "@/stores";
@@ -45,6 +45,7 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [workoutName, setWorkoutName] = useState("Workout");
   const [isEditingName, setIsEditingName] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -381,6 +382,13 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
       setIsSaving(true);
 
       const userId = await useUserStore.getState().getUserId();
+      
+      if (userId === 'anon_user') {
+        setIsSaving(false);
+        setIsLoginModalOpen(true);
+        return;
+      }
+
       const workoutId = crypto.randomUUID();
       const endTime = new Date().toISOString();
       const startTime = new Date(Date.now() - elapsedTime * 1000).toISOString();
@@ -553,6 +561,11 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
         cancelText={t('workout.continue')}
         onConfirm={handleConfirmCancel}
         onCancel={handleCancelCancel}
+      />
+
+      <LoginRequiredModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
       />
     </>
   );

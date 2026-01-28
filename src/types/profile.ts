@@ -3,7 +3,7 @@ export interface UserProfile {
   user_id: string;
   name: string | null;
   age: number | null;
-  gender: 'male' | 'female' | 'other' | null;
+  gender: 'male' | 'female' | null;
   height: number | null;
   created_at: string;
   updated_at: string;

@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { getAnonUserWorkouts } from '@/data/anonUserData';
 
 export interface AnalyticsRow {
   exercise_name: string;
@@ -11,7 +12,41 @@ export interface AnalyticsRow {
 /**
  * Fetch workout analytics using RPC function
  */
-export async function getWorkoutAnalytics(): Promise<AnalyticsRow[]> {
+export async function getWorkoutAnalytics(userId?: string): Promise<AnalyticsRow[]> {
+  if (userId === 'anon_user') {
+    const workouts = getAnonUserWorkouts();
+    const analyticsMap = new Map<string, AnalyticsRow>();
+    
+    workouts.forEach((workout) => {
+      const date = workout.start_time.split('T')[0];
+      workout.exercises.forEach((exercise) => {
+        const completedSets = exercise.sets.filter((s) => s.is_completed);
+        if (completedSets.length === 0) return;
+        
+        const maxWeight = Math.max(...completedSets.map((s) => s.weight));
+        const totalVolume = completedSets.reduce((sum, s) => sum + s.weight * s.reps, 0);
+        const maxVolume = Math.max(...completedSets.map((s) => s.weight * s.reps));
+        
+        const key = `${exercise.name}_${date}`;
+        const existing = analyticsMap.get(key);
+        
+        if (!existing || maxWeight > existing.max_weight) {
+          analyticsMap.set(key, {
+            exercise_name: exercise.name,
+            date,
+            max_weight: maxWeight,
+            max_volume: maxVolume,
+            total_volume: existing ? existing.total_volume + totalVolume : totalVolume,
+          });
+        } else {
+          existing.total_volume += totalVolume;
+        }
+      });
+    });
+    
+    return Array.from(analyticsMap.values());
+  }
+
   const { data, error } = await supabase.rpc('get_workout_analytics');
 
   if (error) throw error;
@@ -32,6 +67,33 @@ export async function getExerciseHistory(
   exerciseName: string,
   limit: number = 5
 ) {
+  if (userId === 'anon_user') {
+    const workouts = getAnonUserWorkouts();
+    const filteredWorkouts = workouts
+      .filter((workout) =>
+        workout.exercises.some((ex) => ex.name === exerciseName)
+      )
+      .slice(0, limit);
+
+    return filteredWorkouts
+      .map((workout) => {
+        const exercise = workout.exercises.find((e) => e.name === exerciseName);
+        const completedSets = (exercise?.sets || []).filter((s) => s.is_completed === true);
+        const sortedSets = completedSets.sort((a, b) => a.order - b.order);
+        if (sortedSets.length === 0) return null;
+        return {
+          workoutId: workout.id,
+          workoutDate: workout.start_time,
+          sets: sortedSets.map((set) => ({
+            order: set.order,
+            weight: set.weight,
+            reps: set.reps,
+          })),
+        };
+      })
+      .filter((x): x is NonNullable<typeof x> => x != null);
+  }
+
   const { data: workoutsData, error } = await supabase
     .from('workouts')
     .select(`
