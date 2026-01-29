@@ -147,8 +147,8 @@
     "dataManagementDesc": "Export and delete data",
     "account": "Account",
     "accountDesc": "Sign out and account",
-    "info": "Info",
-    "infoDesc": "App version and info",
+    "feedbackToDeveloper": "Feedback to developer",
+    "feedbackToDeveloperDesc": "Send email to developer",
     "noWorkouts": "No workout records saved.",
     "totalVolume": "Total volume",
     "totalSets": "Total sets",
@@ -165,7 +165,6 @@
     "signInGmail": "Sign in with Gmail",
     "signInPrompt": "Sign in to keep your data safe.",
     "signOut": "Sign out",
-    "infoPlaceholder": "Coming soon.",
     "count": "{{n}} items"
   },
   "loginRequired": {
