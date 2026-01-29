@@ -399,7 +399,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                               <span className="w-5 h-5 flex items-center justify-center rounded bg-zinc-200 dark:bg-zinc-800 text-xs font-medium">
                                 {idx + 1}
                               </span>
-                              <span>{set.weight}kg × {set.reps}회</span>
+                              <span>{set.weight}kg × {set.reps} {t('workout.reps')}</span>
                               {set.is_completed && <span className="text-green-500 text-xs">✓</span>}
                             </div>
                           ))}

@@ -372,7 +372,7 @@ export default function DataPage() {
                                         {set.weight}kg
                                       </div>
                                       <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                                        × {set.reps}회
+                                        {t('data.repsCount', { count: set.reps })}
                                       </div>
                                     </div>
                                   ) : (
