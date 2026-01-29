@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Moon, Sun, Monitor, Globe, Database, User, Info, LogOut, Mail, ChevronRight, Trash2 } from 'lucide-react';
+import { X, Moon, Sun, Monitor, Globe, Database, User, LogOut, Mail, ChevronRight, Trash2, Send } from 'lucide-react';
 import {
   useSettingsStore,
   useWorkoutHistoryStore,
@@ -28,7 +28,7 @@ interface SettingsModalProps {
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const { t } = useTranslation();
   const { theme, language, setTheme, setLanguage } = useSettingsStore();
-  const [activeSection, setActiveSection] = useState<'main' | 'theme' | 'language' | 'data' | 'account' | 'info'>('main');
+  const [activeSection, setActiveSection] = useState<'main' | 'theme' | 'language' | 'data' | 'account'>('main');
   const [userInfo, setUserInfo] = useState<{ id: string; email?: string; fullName?: string } | null>(null);
   const router = useRouter();
 
@@ -249,16 +249,16 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         </div>
       </button>
 
-      <button
-        onClick={() => setActiveSection('info')}
-        className="w-full flex items-center gap-3 p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors text-left"
+      <a
+        href="mailto:deanlogjapan@gmail.com"
+        className="w-full flex items-center gap-3 p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors text-left no-underline"
       >
-        <Info className="h-5 w-5 text-zinc-600 dark:text-zinc-400" />
+        <Send className="h-5 w-5 text-zinc-600 dark:text-zinc-400" />
         <div className="flex-1">
-          <div className="font-medium text-zinc-900 dark:text-zinc-100">{t('settings.info')}</div>
-          <div className="text-sm text-zinc-500 dark:text-zinc-400">{t('settings.infoDesc')}</div>
+          <div className="font-medium text-zinc-900 dark:text-zinc-100">{t('settings.feedbackToDeveloper')}</div>
+          <div className="text-sm text-zinc-500 dark:text-zinc-400">{t('settings.feedbackToDeveloperDesc')}</div>
         </div>
-      </button>
+      </a>
     </div>
   );
 
@@ -490,23 +490,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     </div>
   );
 
-  const renderInfoSettings = () => (
-    <div className="space-y-4">
-      <div className="flex items-center gap-3 mb-4">
-        <button
-          onClick={() => setActiveSection('main')}
-          className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-        >
-          <X className="h-5 w-5 text-zinc-600 dark:text-zinc-400" />
-        </button>
-        <h2 className="text-lg font-semibold">{t('settings.info')}</h2>
-      </div>
-      <div className="text-center py-12 text-zinc-500 dark:text-zinc-400">
-        {t('settings.infoPlaceholder')}
-      </div>
-    </div>
-  );
-
   return (
     <>
       <div
@@ -532,7 +515,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           {activeSection === 'language' && renderLanguageSettings()}
           {activeSection === 'data' && renderDataSettings()}
           {activeSection === 'account' && renderAccountSettings()}
-          {activeSection === 'info' && renderInfoSettings()}
         </div>
       </div>
 
