@@ -99,6 +99,7 @@
     "loadingHistory": "이력을 불러오는 중...",
     "noHistoryData": "아직 기록된 운동 이력이 없습니다.",
     "set": "세트",
+    "repsCount": "× {{count}}회",
     "timesAgo": "{{n}}회 전",
     "totalKilos": "총 키로수",
     "personalBest": "Personal Best (PR)",
@@ -216,6 +217,3 @@
     "iosGotIt": "알겠습니다"
   }
 }
-
-
-

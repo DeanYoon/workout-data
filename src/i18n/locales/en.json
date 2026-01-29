@@ -99,6 +99,7 @@
     "loadingHistory": "Loading history...",
     "noHistoryData": "No exercise history yet.",
     "set": "Set",
+    "repsCount": "× {{count}} reps",
     "timesAgo": "{{n}} sessions ago",
     "totalKilos": "Total volume",
     "personalBest": "Personal Best (PR)",
@@ -216,6 +217,3 @@
     "iosGotIt": "Got it"
   }
 }
-
-
-
