@@ -1,9 +1,27 @@
 "use client";
 
 import { useTranslation } from "react-i18next";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { CheckCircle2, Loader2, TrendingUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
+
+interface ExerciseSet {
+  id: string;
+  weight: number;
+  reps: number;
+  isCompleted: boolean;
+}
+
+interface ExerciseItem {
+  id: string;
+  name: string;
+  sets: ExerciseSet[];
+}
+
+interface PreviousSet {
+  weight: number;
+  reps: number;
+}
 
 interface WorkoutSummaryModalProps {
   isOpen: boolean;
@@ -12,7 +30,9 @@ interface WorkoutSummaryModalProps {
   totalSets: number;
   isSaving: boolean;
   initialName?: string;
-  isNameEditable?: boolean; // Whether name can be edited
+  isNameEditable?: boolean;
+  exercises?: ExerciseItem[];
+  previousWorkoutData?: Map<string, PreviousSet[]>;
   onSave: (name: string) => void;
   onCancel: () => void;
 }
@@ -25,13 +45,14 @@ export function WorkoutSummaryModal({
   isSaving,
   initialName = "",
   isNameEditable = true,
+  exercises = [],
+  previousWorkoutData,
   onSave,
   onCancel,
 }: WorkoutSummaryModalProps) {
   const { t } = useTranslation();
   const [name, setName] = useState(initialName);
 
-  // Sync with prop when opening
   useEffect(() => {
     if (isOpen) {
       setName(initialName);
@@ -44,10 +65,14 @@ export function WorkoutSummaryModal({
     }
   };
 
+  const isImproved = (currentValue: number, previousValue: number | undefined) => {
+    return previousValue !== undefined && currentValue > previousValue;
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-80 flex items-center justify-center p-4">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -96,7 +121,7 @@ export function WorkoutSummaryModal({
                 )}
               </div>
 
-              <div className="mb-8 grid w-full grid-cols-3 gap-4">
+              <div className="mb-6 grid w-full grid-cols-3 gap-4">
                 <div className="flex flex-col items-center gap-1 rounded-2xl bg-zinc-50 p-4 dark:bg-zinc-800/50">
                   <span className="text-xs font-medium text-zinc-500 uppercase tracking-wide">{t('workout.time')}</span>
                   <span className="font-mono text-lg font-bold text-zinc-900 dark:text-zinc-100">{totalTime}</span>
@@ -110,6 +135,56 @@ export function WorkoutSummaryModal({
                   <span className="font-mono text-lg font-bold text-zinc-900 dark:text-zinc-100">{totalSets}</span>
                 </div>
               </div>
+
+              {/* Exercise Details */}
+              {exercises.length > 0 && (
+                <div className="mb-6 max-h-[320px] overflow-y-auto space-y-3">
+                  {exercises.map((exercise, exerciseIndex) => {
+                    const completedSets = exercise.sets.filter(s => s.isCompleted);
+                    if (completedSets.length === 0) return null;
+
+                    const previousSets = previousWorkoutData?.get(exercise.name) || [];
+
+                    return (
+                      <div key={exercise.id} className="rounded-xl bg-zinc-50 dark:bg-zinc-800/50 p-4">
+                        <div className="mb-3 font-bold text-base text-zinc-900 dark:text-zinc-100">
+                          {exerciseIndex + 1}. {exercise.name}
+                        </div>
+                        <div className="space-y-2.5">
+                          {completedSets.map((set, setIndex) => {
+                            const prevSet = previousSets[setIndex];
+                            const weightImproved = isImproved(set.weight, prevSet?.weight);
+                            const repsImproved = isImproved(set.reps, prevSet?.reps);
+
+                            return (
+                              <div key={set.id} className="flex items-center justify-between text-sm py-1">
+                                <span className="text-zinc-600 dark:text-zinc-400 font-medium min-w-[60px]">
+                                  {t('workout.set')} {setIndex + 1}
+                                </span>
+                                <div className="flex items-center gap-3">
+                                  <span className="flex items-center gap-1.5 text-zinc-900 dark:text-zinc-100 font-semibold min-w-[60px] justify-end">
+                                    {set.weight}kg
+                                    {weightImproved && (
+                                      <TrendingUp className="h-3.5 w-3.5 text-red-500" />
+                                    )}
+                                  </span>
+                                  <span className="text-zinc-500 font-bold">×</span>
+                                  <span className="flex items-center gap-1.5 text-zinc-900 dark:text-zinc-100 font-semibold min-w-[50px]">
+                                    {set.reps}
+                                    {repsImproved && (
+                                      <TrendingUp className="h-3.5 w-3.5 text-red-500" />
+                                    )}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
 
               <div className="flex w-full flex-col gap-3">
                 <button

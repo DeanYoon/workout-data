@@ -49,6 +49,7 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
   const [workoutName, setWorkoutName] = useState("Workout");
   const [isEditingName, setIsEditingName] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const [previousWorkoutData, setPreviousWorkoutData] = useState<Map<string, Array<{ weight: number; reps: number }>>>(new Map());
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -352,8 +353,48 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
 
   const { volume: totalVolume, sets: totalSets } = calculateStats();
 
-  const handleFinishClick = () => {
+  const handleFinishClick = async () => {
     stopRestTimer();
+
+    // Load previous workout data for comparison
+    try {
+      const userId = await useUserStore.getState().getUserId();
+      const workoutsData = await getRecentWorkoutsWithExercises(userId, 20);
+
+      const previousData = new Map<string, Array<{ weight: number; reps: number }>>();
+
+      exercises.forEach((exercise) => {
+        // Find the most recent workout that contains this exercise
+        const matchingWorkout = workoutsData.find((workout: any) =>
+          workout.exercises?.some((ex: any) => ex.name === exercise.name)
+        );
+
+        if (matchingWorkout) {
+          const matchingExercise = matchingWorkout.exercises.find(
+            (ex: any) => ex.name === exercise.name
+          );
+
+          if (matchingExercise && matchingExercise.sets) {
+            const sortedSets = [...matchingExercise.sets].sort(
+              (a: any, b: any) => a.order - b.order
+            );
+
+            previousData.set(
+              exercise.name,
+              sortedSets.map((set: any) => ({
+                weight: set.weight ?? 0,
+                reps: set.reps ?? 0,
+              }))
+            );
+          }
+        }
+      });
+
+      setPreviousWorkoutData(previousData);
+    } catch (error) {
+      console.error("Failed to load previous workout data:", error);
+    }
+
     setIsSummaryOpen(true);
   };
 
@@ -382,7 +423,7 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
       setIsSaving(true);
 
       const userId = await useUserStore.getState().getUserId();
-      
+
       if (userId === 'anon_user') {
         setIsSaving(false);
         setIsLoginModalOpen(true);
@@ -429,7 +470,7 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
 
   return (
     <>
-      <div className="fixed inset-0 z-[60] flex flex-col bg-white dark:bg-black animate-in slide-in-from-bottom duration-300">
+      <div className="fixed inset-0 z-60 flex flex-col bg-white dark:bg-black animate-in slide-in-from-bottom duration-300">
         <header className="flex h-16 items-center justify-between border-b px-4 dark:border-zinc-800">
           <button
             onClick={handleCancelWorkout}
@@ -549,6 +590,8 @@ export function ActiveSessionDrawer({ isOpen, onClose, initialData, initialWorko
         isSaving={isSaving}
         initialName={workoutName}
         isNameEditable={!initialWorkoutName}
+        exercises={exercises}
+        previousWorkoutData={previousWorkoutData}
         onSave={handleSaveWorkout}
         onCancel={handleCancelSummary}
       />

@@ -33,12 +33,6 @@ export function MonthlyCalendarView({
   const tileContent = ({ date, view }: { date: Date; view: string }) => {
     if (view !== 'month') return null;
 
-    // Don't show workout info for neighboring months
-    const isNeighboringMonth = date.getMonth() !== currentMonth.getMonth();
-    if (isNeighboringMonth) {
-      return null;
-    }
-
     const workoutInfo = getWorkoutForDate(date, allWorkoutsMap, splitOrder, allWorkouts);
     const isPast = date < today;
 

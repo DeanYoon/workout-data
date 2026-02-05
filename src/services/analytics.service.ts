@@ -16,20 +16,20 @@ export async function getWorkoutAnalytics(userId?: string): Promise<AnalyticsRow
   if (userId === 'anon_user') {
     const workouts = getAnonUserWorkouts();
     const analyticsMap = new Map<string, AnalyticsRow>();
-    
+
     workouts.forEach((workout) => {
       const date = workout.start_time.split('T')[0];
       workout.exercises.forEach((exercise) => {
         const completedSets = exercise.sets.filter((s) => s.is_completed);
         if (completedSets.length === 0) return;
-        
+
         const maxWeight = Math.max(...completedSets.map((s) => s.weight));
         const totalVolume = completedSets.reduce((sum, s) => sum + s.weight * s.reps, 0);
         const maxVolume = Math.max(...completedSets.map((s) => s.weight * s.reps));
-        
+
         const key = `${exercise.name}_${date}`;
         const existing = analyticsMap.get(key);
-        
+
         if (!existing || maxWeight > existing.max_weight) {
           analyticsMap.set(key, {
             exercise_name: exercise.name,
@@ -43,7 +43,7 @@ export async function getWorkoutAnalytics(userId?: string): Promise<AnalyticsRow
         }
       });
     });
-    
+
     return Array.from(analyticsMap.values());
   }
 
